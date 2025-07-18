@@ -1,0 +1,14 @@
+/*
+ * ----------------------------------------------------------------------------
+ * THIS FILE IS AUTO-GENERATED – DO NOT EDIT MANUALLY
+ * Generated from: config.h.in
+ * By: CMake during build configuration
+ * ----------------------------------------------------------------------------
+ */
+
+#pragma once
+
+namespace ash::config
+{
+constexpr const wchar_t *SHADER_PATH = L"D:/Workspace/Cpp/Ashenvale-DX12/shaders/";
+}

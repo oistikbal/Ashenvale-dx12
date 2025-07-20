@@ -1,23 +1,42 @@
 #include "shader.h"
+#include "renderer/core/device.h"
 #include "shader_compiler.h"
-#include <d3dcompiler.h>
 
 using namespace winrt;
 
-void ash::renderer::pipeline::shader::init()
+namespace
+{
+void init_shader(ash::renderer::pipeline::shader::shader &shader)
 {
     com_ptr<IDxcBlobUtf8> error_blob;
+    com_ptr<IDxcResult> result;
+
     com_ptr<ID3D12ShaderReflection> reflector;
+    com_ptr<IDxcBlob> reflection_blob;
 
-    shader_compiler::compile(L"triangle.hlsl", L"vs_main", L"vs_6_8", g_triangle_vs.blob.put(), reflector.put(),
-                             error_blob.put());
+    ash::renderer::pipeline::shader_compiler::compile(L"triangle.hlsl", L"vs_main", L"vs_6_8", result.put(),
+                                                      error_blob.put());
 
-    g_triangle_vs.input_layout = shader_compiler::get_input_layout(reflector.get());
-    g_triangle_vs.bindings = shader_compiler::get_bindings(reflector.get());
+    result->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(shader.blob.put()), nullptr);
+    result->GetOutput(DXC_OUT_ROOT_SIGNATURE, IID_PPV_ARGS(shader.root_blob.put()), nullptr);
+    result->GetOutput(DXC_OUT_REFLECTION, IID_PPV_ARGS(reflection_blob.put()), nullptr);
 
-    shader_compiler::compile(L"triangle.hlsl", L"ps_main", L"ps_6_8", g_triangle_ps.blob.put(), reflector.put(),
-                             error_blob.put());
+    DxcBuffer reflectionBuffer{
+        .Ptr = reflection_blob->GetBufferPointer(),
+        .Size = reflection_blob->GetBufferSize(),
+        .Encoding = 0,
+    };
 
-    g_triangle_ps.input_layout = shader_compiler::get_input_layout(reflector.get());
-    g_triangle_ps.bindings = shader_compiler::get_bindings(reflector.get());
+    ash::renderer::pipeline::shader_compiler::g_utils->CreateReflection(&reflectionBuffer,
+                                                                        IID_PPV_ARGS(reflector.put()));
+
+    shader.input_layout = ash::renderer::pipeline::shader_compiler::get_input_layout(reflector.get());
+    shader.bindings = ash::renderer::pipeline::shader_compiler::get_bindings(reflector.get());
+}
+} // namespace
+
+void ash::renderer::pipeline::shader::init()
+{
+    init_shader(g_triangle_vs);
+    init_shader(g_triangle_ps);
 }

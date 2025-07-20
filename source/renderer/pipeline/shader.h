@@ -16,6 +16,7 @@ struct resource_binding
 struct shader
 {
     winrt::com_ptr<IDxcBlob> blob;
+    winrt::com_ptr<IDxcBlob> root_blob;
     std::vector<D3D12_INPUT_ELEMENT_DESC> input_layout;
     std::vector<resource_binding> bindings;
 };

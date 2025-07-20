@@ -1,9 +1,9 @@
 #include "renderer.h"
+#include "pipeline/shader.h"
+#include "pipeline/shader_compiler.h"
 #include "renderer/core/command_queue.h"
 #include "renderer/core/device.h"
 #include "renderer/core/swapchain.h"
-#include "pipeline/shader_compiler.h"
-#include "pipeline/shader.h"
 #include "window/window.h"
 #include <dxgidebug.h>
 
@@ -52,7 +52,6 @@ void ash::renderer::init()
     core::swapchain::init(closeMatch.Format);
     pipeline::shader_compiler::init();
     pipeline::shader::init();
-
 
     g_renderer_thread = std::thread(render);
     HANDLE hThread = static_cast<HANDLE>(g_renderer_thread.native_handle());
@@ -107,7 +106,8 @@ void ash::renderer::render()
         core::command_queue::g_direct->Signal(core::swapchain::g_fence.get(), core::swapchain::g_fence_value);
         if (core::swapchain::g_fence->GetCompletedValue() < core::swapchain::g_fence_value)
         {
-            core::swapchain::g_fence->SetEventOnCompletion(core::swapchain::g_fence_value, core::swapchain::g_fence_event);
+            core::swapchain::g_fence->SetEventOnCompletion(core::swapchain::g_fence_value,
+                                                           core::swapchain::g_fence_event);
             WaitForSingleObject(core::swapchain::g_fence_event, INFINITE);
         }
     }

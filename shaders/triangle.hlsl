@@ -1,9 +1,12 @@
+Texture2D myTexture : register(t0);
+
 struct VSOutput
 {
     float4 position : SV_Position;
     float3 color : COLOR;
 };
 
+[RootSignature("DescriptorTable(SRV(t0))")]
 VSOutput vs_main(uint vertexId : SV_VertexID)
 {
     float2 positions[3] =
@@ -26,6 +29,7 @@ VSOutput vs_main(uint vertexId : SV_VertexID)
     return output;
 }
 
+[RootSignature("DescriptorTable(SRV(t0))")]
 float4 ps_main(VSOutput input) : SV_Target
 {
     return float4(input.color, 1.0f);

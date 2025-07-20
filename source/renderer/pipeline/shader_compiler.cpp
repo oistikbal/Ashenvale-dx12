@@ -9,12 +9,6 @@ using namespace winrt;
 
 namespace
 {
-com_ptr<IDxcCompiler3> g_compiler;
-com_ptr<IDxcUtils> g_utils;
-} // namespace
-
-namespace
-{
 std::vector<uint8_t> load_file(const wchar_t *file_name)
 {
     std::ifstream file(file_name, std::ios::binary);
@@ -32,8 +26,8 @@ void ash::renderer::pipeline::shader_compiler::init()
 }
 
 HRESULT ash::renderer::pipeline::shader_compiler::compile(const wchar_t *file, const wchar_t *entryPoint,
-                                                          const wchar_t *target, IDxcBlob **shader_blob,
-                                                          ID3D12ShaderReflection **reflector, IDxcBlobUtf8 **error_blob)
+                                                          const wchar_t *target, IDxcResult **result,
+                                                          IDxcBlobUtf8 **error_blob)
 {
     std::wstring full_path = std::wstring(config::SHADER_PATH) + file;
     std::vector<uint8_t> source_data = load_file(full_path.c_str());
@@ -50,31 +44,17 @@ HRESULT ash::renderer::pipeline::shader_compiler::compile(const wchar_t *file, c
     source_buffer.Size = source_blob->GetBufferSize();
     source_buffer.Encoding = DXC_CP_UTF8;
 
-    com_ptr<IDxcResult> results;
-    g_compiler->Compile(&source_buffer, args, _countof(args), nullptr, IID_PPV_ARGS(results.put()));
+    g_compiler->Compile(&source_buffer, args, _countof(args), nullptr, IID_PPV_ARGS(result));
 
-    results->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(error_blob), nullptr);
+    (*result)->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(error_blob), nullptr);
     if (error_blob && (*error_blob)->GetStringLength() > 0)
     {
         OutputDebugStringA((*error_blob)->GetStringPointer());
     }
 
     HRESULT hrStatus;
-    results->GetStatus(&hrStatus);
+    (*result)->GetStatus(&hrStatus);
     assert(SUCCEEDED(hrStatus));
-
-    results->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(shader_blob), nullptr);
-
-    com_ptr<IDxcBlob> reflection_blob;
-    results->GetOutput(DXC_OUT_REFLECTION, IID_PPV_ARGS(reflection_blob.put()), nullptr);
-
-    DxcBuffer reflectionBuffer{
-        .Ptr = reflection_blob->GetBufferPointer(),
-        .Size = reflection_blob->GetBufferSize(),
-        .Encoding = 0,
-    };
-
-    g_utils->CreateReflection(&reflectionBuffer, IID_PPV_ARGS(reflector));
 
     return hrStatus;
 }

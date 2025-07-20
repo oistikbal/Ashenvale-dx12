@@ -2,6 +2,8 @@
 #include "renderer/core/command_queue.h"
 #include "renderer/core/device.h"
 #include "renderer/core/swapchain.h"
+#include "pipeline/shader_compiler.h"
+#include "pipeline/shader.h"
 #include "window/window.h"
 #include <dxgidebug.h>
 
@@ -48,6 +50,9 @@ void ash::renderer::init()
 
     core::command_queue::init();
     core::swapchain::init(closeMatch.Format);
+    pipeline::shader_compiler::init();
+    pipeline::shader::init();
+
 
     g_renderer_thread = std::thread(render);
     HANDLE hThread = static_cast<HANDLE>(g_renderer_thread.native_handle());

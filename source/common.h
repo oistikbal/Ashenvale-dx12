@@ -14,3 +14,9 @@
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <winrt/base.h>
+
+#if _DEBUG
+#define SET_DX_NAME(object, name) object->SetName(name);
+#else
+#define SET_DX_NAME(object, name) ((void)0);
+#endif

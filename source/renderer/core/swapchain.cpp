@@ -71,6 +71,7 @@ void ash::renderer::core::swapchain::init(DXGI_FORMAT format)
 
     g_fence_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
     core::g_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(g_fence.put()));
+    SET_DX_NAME(g_fence.get(), L"Swapchain Fence");
 }
 
 void ash::renderer::core::swapchain::resize(int width, int height)

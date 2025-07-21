@@ -36,7 +36,7 @@ HRESULT ash::renderer::pipeline::shader_compiler::compile(const wchar_t *file, c
     g_utils->CreateBlobFromPinned(source_data.data(), (UINT32)source_data.size(), CP_UTF8, source_blob.put());
 
     const wchar_t *args[] = {
-        file, L"-E", entryPoint, L"-T", target, L"-Zi", L"-Qembed_debug", L"-Od",
+        file, L"-E", entryPoint, L"-T", target, L"-Zi", L"-Qembed_debug", L"-Od", L"-Qstrip_reflect",
     };
 
     DxcBuffer source_buffer = {};

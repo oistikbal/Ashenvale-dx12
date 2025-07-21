@@ -1,5 +1,6 @@
 #include "renderer.h"
 #include "pipeline/shader.h"
+#include "pipeline/pipeline.h"
 #include "pipeline/shader_compiler.h"
 #include "renderer/core/command_queue.h"
 #include "renderer/core/device.h"
@@ -11,11 +12,6 @@ using namespace winrt;
 
 void ash::renderer::init()
 {
-    com_ptr<IDXGIFactory7> factory;
-    CreateDXGIFactory2(0, IID_PPV_ARGS(&factory));
-
-    factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(core::g_adapter.put()));
-
 #if _DEBUG
     com_ptr<ID3D12Debug> debugController;
     if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
@@ -29,6 +25,12 @@ void ash::renderer::init()
         dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, true);
     }
 #endif
+
+    com_ptr<IDXGIFactory7> factory;
+    CreateDXGIFactory2(0, IID_PPV_ARGS(&factory));
+
+    factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(core::g_adapter.put()));
+
 
     D3D12CreateDevice(core::g_adapter.get(), D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(core::g_device.put()));
     assert(core::g_device.get());
@@ -52,6 +54,7 @@ void ash::renderer::init()
     core::swapchain::init(closeMatch.Format);
     pipeline::shader_compiler::init();
     pipeline::shader::init();
+    pipeline::init();
 
     g_renderer_thread = std::thread(render);
     HANDLE hThread = static_cast<HANDLE>(g_renderer_thread.native_handle());
@@ -87,6 +90,15 @@ void ash::renderer::render()
         float clearColor[] = {0.1f, 0.1f, 0.3f, 1.0f};
         core::command_queue::g_command_list->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 
+        core::command_queue::g_command_list->SetPipelineState(pipeline::g_triangle.pso.get());
+        core::command_queue::g_command_list->SetGraphicsRootSignature(pipeline::g_triangle.root_signature.get());
+        D3D12_RECT scissorRect = {0, 0, core::swapchain::g_viewport.Width, core::swapchain::g_viewport.Height};
+        core::command_queue::g_command_list->RSSetViewports(1, &core::swapchain::g_viewport);
+        core::command_queue::g_command_list->RSSetScissorRects(1, &scissorRect);
+        core::command_queue::g_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        core::command_queue::g_command_list->DrawInstanced(3, 1, 0, 0);
+
+
         barrier = {};
         barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
         barrier.Transition.pResource = core::swapchain::g_render_targets[frameIndex].get();
@@ -104,6 +116,7 @@ void ash::renderer::render()
 
         core::swapchain::g_fence_value++;
         core::command_queue::g_direct->Signal(core::swapchain::g_fence.get(), core::swapchain::g_fence_value);
+
         if (core::swapchain::g_fence->GetCompletedValue() < core::swapchain::g_fence_value)
         {
             core::swapchain::g_fence->SetEventOnCompletion(core::swapchain::g_fence_value,

@@ -6,7 +6,8 @@ using namespace winrt;
 
 namespace
 {
-void init_shader(ash::renderer::pipeline::shader::shader &shader)
+void init_shader(ash::renderer::pipeline::shader::shader &shader, const wchar_t *file, const wchar_t *entryPoint,
+                 const wchar_t *target)
 {
     com_ptr<IDxcBlobUtf8> error_blob;
     com_ptr<IDxcResult> result;
@@ -14,8 +15,7 @@ void init_shader(ash::renderer::pipeline::shader::shader &shader)
     com_ptr<ID3D12ShaderReflection> reflector;
     com_ptr<IDxcBlob> reflection_blob;
 
-    ash::renderer::pipeline::shader_compiler::compile(L"triangle.hlsl", L"vs_main", L"vs_6_8", result.put(),
-                                                      error_blob.put());
+    ash::renderer::pipeline::shader_compiler::compile(file, entryPoint, target, result.put(), error_blob.put());
 
     result->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(shader.blob.put()), nullptr);
     result->GetOutput(DXC_OUT_ROOT_SIGNATURE, IID_PPV_ARGS(shader.root_blob.put()), nullptr);
@@ -37,6 +37,6 @@ void init_shader(ash::renderer::pipeline::shader::shader &shader)
 
 void ash::renderer::pipeline::shader::init()
 {
-    init_shader(g_triangle_vs);
-    init_shader(g_triangle_ps);
+    init_shader(g_triangle_vs, L"triangle.hlsl", L"vs_main", L"vs_6_6");
+    init_shader(g_triangle_ps, L"triangle.hlsl", L"ps_main", L"ps_6_6");
 }

@@ -1,5 +1,6 @@
 #include "pipeline.h"
 #include "renderer/core/device.h"
+#include "renderer/core/swapchain.h"
 #include "shader.h"
 
 using namespace winrt;
@@ -44,7 +45,7 @@ void ash::renderer::pipeline::init()
     psoDesc.SampleMask = UINT_MAX;
     psoDesc.SampleDesc.Count = 1;
     psoDesc.NumRenderTargets = 1;
-    psoDesc.RTVFormats[0] = DXGI_FORMAT_R10G10B10A2_UNORM;
+    psoDesc.RTVFormats[0] = core::swapchain::g_format;
     psoDesc.RasterizerState = raster_desc;
     psoDesc.DepthStencilState.DepthEnable = FALSE;
     psoDesc.DepthStencilState.StencilEnable = FALSE;

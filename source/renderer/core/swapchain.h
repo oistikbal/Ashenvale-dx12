@@ -13,6 +13,7 @@ inline uint8_t g_current_backbuffer = 0;
 inline uint64_t g_fence_value = 0;
 inline HANDLE g_fence_event = 0;
 inline D3D12_VIEWPORT g_viewport;
+inline DXGI_FORMAT g_format;
 
 } // namespace ash::renderer::core
 

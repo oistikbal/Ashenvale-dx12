@@ -5,15 +5,10 @@
 
 using namespace winrt;
 
-namespace
-{
-DXGI_FORMAT g_swapchain_format;
-}
-
 void ash::renderer::core::swapchain::init(DXGI_FORMAT format)
 {
     assert(core::command_queue::g_direct.get());
-    g_swapchain_format = format;
+    g_format = format;
 
     RECT clientRect;
     GetClientRect(window::g_hwnd, &clientRect);
@@ -25,7 +20,7 @@ void ash::renderer::core::swapchain::init(DXGI_FORMAT format)
     swapChainDesc.BufferCount = 2;
     swapChainDesc.Width = renderWidth;
     swapChainDesc.Height = renderHeight;
-    swapChainDesc.Format = g_swapchain_format;
+    swapChainDesc.Format = g_format;
     swapChainDesc.SampleDesc.Count = 1;
     swapChainDesc.SampleDesc.Quality = 0;
     swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;

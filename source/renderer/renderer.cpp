@@ -1,6 +1,6 @@
 #include "renderer.h"
-#include "pipeline/shader.h"
 #include "pipeline/pipeline.h"
+#include "pipeline/shader.h"
 #include "pipeline/shader_compiler.h"
 #include "renderer/core/command_queue.h"
 #include "renderer/core/device.h"
@@ -12,6 +12,7 @@ using namespace winrt;
 
 void ash::renderer::init()
 {
+    SCOPED_CPU_EVENT(L"ash::renderer::init");
 #if _DEBUG
     com_ptr<ID3D12Debug> debugController;
     if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
@@ -30,7 +31,6 @@ void ash::renderer::init()
     CreateDXGIFactory2(0, IID_PPV_ARGS(&factory));
 
     factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(core::g_adapter.put()));
-
 
     D3D12CreateDevice(core::g_adapter.get(), D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(core::g_device.put()));
     assert(core::g_device.get());
@@ -66,47 +66,50 @@ void ash::renderer::render()
 {
     while (g_running)
     {
-        core::swapchain::g_current_backbuffer = core::swapchain::g_swapchain->GetCurrentBackBufferIndex();
-        uint8_t &frameIndex = core::swapchain::g_current_backbuffer;
-
+        SCOPED_CPU_EVENT(L"ash::renderer::render");
         core::command_queue::g_command_allocator->Reset();
         core::command_queue::g_command_list->Reset(core::command_queue::g_command_allocator.get(), nullptr);
+        {
+            SCOPED_GPU_EVENT(core::command_queue::g_direct.get(), L"ash::renderer::render");
+            core::swapchain::g_current_backbuffer = core::swapchain::g_swapchain->GetCurrentBackBufferIndex();
+            uint8_t &frameIndex = core::swapchain::g_current_backbuffer;
 
-        uint32_t rtvDescriptorSize = core::g_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-        D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = core::swapchain::g_rtv_heap->GetCPUDescriptorHandleForHeapStart();
-        rtvHandle.ptr += frameIndex * rtvDescriptorSize;
+            uint32_t rtvDescriptorSize =
+                core::g_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+            D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = core::swapchain::g_rtv_heap->GetCPUDescriptorHandleForHeapStart();
+            rtvHandle.ptr += frameIndex * rtvDescriptorSize;
 
-        D3D12_RESOURCE_BARRIER barrier = {};
-        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Transition.pResource = core::swapchain::g_render_targets[frameIndex].get();
-        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+            D3D12_RESOURCE_BARRIER barrier = {};
+            barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+            barrier.Transition.pResource = core::swapchain::g_render_targets[frameIndex].get();
+            barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+            barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+            barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
-        core::command_queue::g_command_list->ResourceBarrier(1, &barrier);
+            core::command_queue::g_command_list->ResourceBarrier(1, &barrier);
 
-        core::command_queue::g_command_list->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+            core::command_queue::g_command_list->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
 
-        float clearColor[] = {0.1f, 0.1f, 0.3f, 1.0f};
-        core::command_queue::g_command_list->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+            float clearColor[] = {0.1f, 0.1f, 0.3f, 1.0f};
+            core::command_queue::g_command_list->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 
-        core::command_queue::g_command_list->SetPipelineState(pipeline::g_triangle.pso.get());
-        core::command_queue::g_command_list->SetGraphicsRootSignature(pipeline::g_triangle.root_signature.get());
-        D3D12_RECT scissorRect = {0, 0, core::swapchain::g_viewport.Width, core::swapchain::g_viewport.Height};
-        core::command_queue::g_command_list->RSSetViewports(1, &core::swapchain::g_viewport);
-        core::command_queue::g_command_list->RSSetScissorRects(1, &scissorRect);
-        core::command_queue::g_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        core::command_queue::g_command_list->DrawInstanced(3, 1, 0, 0);
+            core::command_queue::g_command_list->SetPipelineState(pipeline::g_triangle.pso.get());
+            core::command_queue::g_command_list->SetGraphicsRootSignature(pipeline::g_triangle.root_signature.get());
+            D3D12_RECT scissorRect = {0, 0, core::swapchain::g_viewport.Width, core::swapchain::g_viewport.Height};
+            core::command_queue::g_command_list->RSSetViewports(1, &core::swapchain::g_viewport);
+            core::command_queue::g_command_list->RSSetScissorRects(1, &scissorRect);
+            core::command_queue::g_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            core::command_queue::g_command_list->DrawInstanced(3, 1, 0, 0);
 
+            barrier = {};
+            barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+            barrier.Transition.pResource = core::swapchain::g_render_targets[frameIndex].get();
+            barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+            barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+            barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
-        barrier = {};
-        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Transition.pResource = core::swapchain::g_render_targets[frameIndex].get();
-        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-
-        core::command_queue::g_command_list->ResourceBarrier(1, &barrier);
+            core::command_queue::g_command_list->ResourceBarrier(1, &barrier);
+        }
 
         core::command_queue::g_command_list->Close();
 

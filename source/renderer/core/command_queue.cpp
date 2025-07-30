@@ -23,11 +23,13 @@ void ash::renderer::core::command_queue::init()
     create(D3D12_COMMAND_LIST_TYPE_COMPUTE, D3D12_COMMAND_QUEUE_PRIORITY_NORMAL, g_compute.put());
     create(D3D12_COMMAND_LIST_TYPE_COPY, D3D12_COMMAND_QUEUE_PRIORITY_NORMAL, g_copy.put());
 
-    SET_DX_NAME(g_direct.get(), L"Direct Queue")
-    SET_DX_NAME(g_compute.get(), L"Compute Queue")
-    SET_DX_NAME(g_copy.get(), L"Copy Queue")
+    SET_OBJECT_NAME(g_direct.get(), L"Direct Queue")
+    SET_OBJECT_NAME(g_compute.get(), L"Compute Queue")
+    SET_OBJECT_NAME(g_copy.get(), L"Copy Queue")
 
     core::g_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(g_command_allocator.put()));
     core::g_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, g_command_allocator.get(), nullptr,
                                       IID_PPV_ARGS(g_command_list.put()));
+
+    SET_OBJECT_NAME(g_command_list.get(), L"Triangle Command List");
 }

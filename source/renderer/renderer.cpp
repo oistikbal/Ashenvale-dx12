@@ -10,6 +10,42 @@
 
 using namespace winrt;
 
+namespace
+{
+void handle_window_events()
+{
+    SCOPED_CPU_EVENT(L"::handle_window_events");
+
+    ash::window::event::swap_buffers(ash::window::g_queue);
+    auto &q = ash::window::event::get_back_buffer(ash::window::g_queue);
+
+    if (q.empty())
+        return;
+
+    ash::window::event::event e;
+
+    bool resize = false;
+
+    while (!q.empty())
+    {
+        e = std::move(q.front());
+        q.pop();
+
+        switch (e.type)
+        {
+        case ash::window::event::windows_event::resize:
+            resize = true;
+            break;
+        default:
+            break;
+        }
+    }
+
+    if (resize)
+        ash::renderer::core::swapchain::resize();
+}
+} // namespace
+
 void ash::renderer::init()
 {
     SCOPED_CPU_EVENT(L"ash::renderer::init");
@@ -67,10 +103,13 @@ void ash::renderer::render()
     while (g_running)
     {
         SCOPED_CPU_EVENT(L"ash::renderer::render");
+
+        handle_window_events();
+
         core::command_queue::g_command_allocator->Reset();
         core::command_queue::g_command_list->Reset(core::command_queue::g_command_allocator.get(), nullptr);
+
         {
-            SCOPED_GPU_EVENT(core::command_queue::g_direct.get(), L"ash::renderer::render");
             core::swapchain::g_current_backbuffer = core::swapchain::g_swapchain->GetCurrentBackBufferIndex();
             uint8_t &frameIndex = core::swapchain::g_current_backbuffer;
 
@@ -109,9 +148,8 @@ void ash::renderer::render()
             barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
             core::command_queue::g_command_list->ResourceBarrier(1, &barrier);
+            core::command_queue::g_command_list->Close();
         }
-
-        core::command_queue::g_command_list->Close();
 
         ID3D12CommandList *cmdLists[] = {core::command_queue::g_command_list.get()};
         core::command_queue::g_direct->ExecuteCommandLists(1, cmdLists);
@@ -133,6 +171,7 @@ void ash::renderer::render()
 
 void ash::renderer::stop()
 {
+    SCOPED_CPU_EVENT(L"ash::renderer::stop");
     g_running = false;
     g_renderer_thread.join();
 }

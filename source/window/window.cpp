@@ -1,10 +1,12 @@
 #include "window/window.h"
+#include "renderer/core/swapchain.h"
 #include "renderer/renderer.h"
 
 static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 void ash::window::init(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
 {
+    SCOPED_CPU_EVENT(L"ash::window::init");
     WNDCLASS wc = {};
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = GetModuleHandle(nullptr);
@@ -29,6 +31,7 @@ void ash::window::run()
 
     while (GetMessage(&msg, nullptr, 0, 0))
     {
+        SCOPED_CPU_EVENT(L"ash::window::run");
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
@@ -57,8 +60,7 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
         PostQuitMessage(0);
         return 0;
     case WM_SIZE:
-        int width = LOWORD(lParam);
-        int height = HIWORD(lParam);
+        ash::window::event::push(ash::window::g_queue, {ash::window::event::windows_event::resize});
         return 0;
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);

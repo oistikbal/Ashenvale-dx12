@@ -7,12 +7,12 @@ using namespace winrt;
 
 void ash::renderer::pipeline::init()
 {
-
+    SCOPED_CPU_EVENT(L"ash::renderer::pipeline::init");
     core::g_device->CreateRootSignature(0, shader::g_triangle_vs.root_blob->GetBufferPointer(),
                                         shader::g_triangle_vs.root_blob->GetBufferSize(),
                                         IID_PPV_ARGS(g_triangle.root_signature.put()));
 
-    SET_DX_NAME(g_triangle.root_signature.get(), L"Triangle Root");
+    SET_OBJECT_NAME(g_triangle.root_signature.get(), L"Triangle Root");
 
     D3D12_RASTERIZER_DESC raster_desc = {};
     raster_desc.FillMode = D3D12_FILL_MODE_SOLID;
@@ -52,5 +52,5 @@ void ash::renderer::pipeline::init()
     psoDesc.BlendState = blend_desc;
 
     core::g_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(g_triangle.pso.put()));
-    SET_DX_NAME(g_triangle.pso.get(), L"Triangle Pso");
+    SET_OBJECT_NAME(g_triangle.pso.get(), L"Triangle PSO");
 }

@@ -10,5 +10,5 @@
 
 namespace ash::config
 {
-constexpr const wchar_t *SHADER_PATH = L"D:/Workspace/Cpp/Ashenvale-DX12/shaders/";
+constexpr const wchar_t *SHADER_PATH = L"@SHADER_PATH@";
 }

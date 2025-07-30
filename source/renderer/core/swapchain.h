@@ -20,5 +20,5 @@ inline DXGI_FORMAT g_format;
 namespace ash::renderer::core::swapchain
 {
 void init(DXGI_FORMAT format);
-void resize(int width, int height);
+void resize();
 } // namespace ash::renderer::core

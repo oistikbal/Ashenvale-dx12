@@ -1,4 +1,4 @@
-#include "renderer.h"
+﻿#include "renderer.h"
 #include "pipeline/pipeline.h"
 #include "pipeline/shader.h"
 #include "pipeline/shader_compiler.h"
@@ -106,9 +106,6 @@ void ash::renderer::render()
 
         handle_window_events();
 
-        core::command_queue::g_command_allocator->Reset();
-        core::command_queue::g_command_list->Reset(core::command_queue::g_command_allocator.get(), nullptr);
-
         {
             core::swapchain::g_current_backbuffer = core::swapchain::g_swapchain->GetCurrentBackBufferIndex();
             uint8_t &frameIndex = core::swapchain::g_current_backbuffer;
@@ -164,6 +161,9 @@ void ash::renderer::render()
                                                            core::swapchain::g_fence_event);
             WaitForSingleObject(core::swapchain::g_fence_event, INFINITE);
         }
+
+        core::command_queue::g_command_allocator->Reset();
+        core::command_queue::g_command_list->Reset(core::command_queue::g_command_allocator.get(), nullptr);
     }
 
     ExitThread(0);

@@ -67,7 +67,7 @@ set_target_properties(Ashenvale PROPERTIES CXX_STANDARD_REQUIRED True)
 if(WIN32)
     target_link_libraries(Ashenvale d3d12 dxguid dxgi dxcompiler windowsapp) 
     target_link_libraries(Ashenvale "${CMAKE_SOURCE_DIR}/thirdparty/WinPixEventRuntime/bin/x64/WinPixEventRuntime.lib") 
-
+    target_compile_options(Ashenvale PRIVATE /utf-8)
     add_custom_command(TARGET Ashenvale POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_SOURCE_DIR}/thirdparty/WinPixEventRuntime/bin/x64/WinPixEventRuntime.dll"

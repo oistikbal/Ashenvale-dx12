@@ -1,4 +1,4 @@
-#include "command_queue.h"
+﻿#include "command_queue.h"
 #include "renderer/core/device.h"
 
 namespace

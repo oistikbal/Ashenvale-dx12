@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "common.h"
 #include <mutex>
@@ -28,7 +28,7 @@ inline void swap_buffers(event_queue &eq)
 }
 
 inline void push(event_queue &eq, const event e)
-{;
+{
     eq.queue[eq.index.load(std::memory_order_relaxed)].push(e);
 }
 

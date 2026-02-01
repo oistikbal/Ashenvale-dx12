@@ -11,4 +11,5 @@
 namespace ash::config
 {
 constexpr const wchar_t *SHADER_PATH = L"@SHADER_PATH@";
+constexpr const wchar_t *RESOURCES_PATH = L"@RESOURCE_PATH@";
 }

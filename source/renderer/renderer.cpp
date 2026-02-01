@@ -1,4 +1,5 @@
 ﻿#include "renderer.h"
+#include "configs/config.h"
 #include "pipeline/pipeline.h"
 #include "pipeline/shader.h"
 #include "pipeline/shader_compiler.h"
@@ -7,6 +8,7 @@
 #include "renderer/core/swapchain.h"
 #include "window/window.h"
 #include <dxgidebug.h>
+#include <filesystem>
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_dx12.h>
 #include <imgui/imgui_impl_win32.h>
@@ -132,13 +134,20 @@ void ash::renderer::init()
 
     ImGui_ImplWin32_Init(window::g_hwnd);
     ImGui_ImplDX12_Init(&init_info);
+
+    ImFontConfig config{};
+    config.MergeMode = false;
+    config.PixelSnapH = true;
+
+    std::string full_path = (std::filesystem::path(config::RESOURCES_PATH) / "Roboto-Regular.ttf").string();
+    io.Fonts->AddFontFromFileTTF((full_path.c_str()), 16.0f, &config);
 }
 
 void ash::renderer::render()
 {
     while (g_running)
     {
-        SCOPED_CPU_EVENT(L"ash::renderer::render");
+        SCOPED_CPU_EVENT(L"ash::renderer::render")
 
         handle_window_events();
 
@@ -222,7 +231,7 @@ void ash::renderer::render()
 
 void ash::renderer::stop()
 {
-    SCOPED_CPU_EVENT(L"ash::renderer::stop");
+    SCOPED_CPU_EVENT(L"ash::renderer::stop")
     g_running = false;
     g_renderer_thread.join();
 }

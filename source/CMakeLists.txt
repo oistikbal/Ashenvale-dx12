@@ -1,4 +1,4 @@
-add_executable(Ashenvale WIN32)
+﻿add_executable(Ashenvale WIN32)
 
 file(GLOB_RECURSE ASHENVALE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 file(GLOB_RECURSE ASHENVALE_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
@@ -10,10 +10,15 @@ set_source_files_properties(${ASHENVALE_SHADERS} PROPERTIES VS_TOOL_OVERRIDE "te
 set(SHADER_DIR_DEBUG "${CMAKE_SOURCE_DIR}/shaders")
 set(SHADER_DIR_RELEASE "/shaders")
 
+set(RESOURCES_DIR_DEBUG "${CMAKE_SOURCE_DIR}/resources")
+set(RESOURCES_DIR_RELEASE "/resources")
+
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(SHADER_PATH "${SHADER_DIR_RELEASE}/")
+    set(SHADER_PATH "${RESOURCES_DIR_RELEASE}/")
 else()
     set(SHADER_PATH "${SHADER_DIR_DEBUG}/")
+    set(RESOURCE_PATH "${RESOURCES_DIR_DEBUG}/")
 endif()
 
 
@@ -74,3 +79,14 @@ if(WIN32)
         $<TARGET_FILE_DIR:Ashenvale>
 )
 endif()
+
+add_custom_command(TARGET Ashenvale POST_BUILD
+COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_SOURCE_DIR}/resources/"
+    "$<TARGET_FILE_DIR:Ashenvale>/resources/"
+)
+add_custom_command(TARGET Ashenvale POST_BUILD
+COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_SOURCE_DIR}/shaders/"
+    "$<TARGET_FILE_DIR:Ashenvale>/shaders/"
+)

@@ -7,7 +7,7 @@ using namespace winrt;
 
 void ash::renderer::core::swapchain::init(DXGI_FORMAT format)
 {
-    SCOPED_CPU_EVENT(L"ash::renderer::core::swapchain::init");
+    SCOPED_CPU_EVENT(L"ash::renderer::core::swapchain::init")
     assert(core::command_queue::g_direct.get());
     g_format = format;
 
@@ -67,13 +67,13 @@ void ash::renderer::core::swapchain::init(DXGI_FORMAT format)
 
     g_fence_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
     core::g_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(g_fence.put()));
-    SET_OBJECT_NAME(g_fence.get(), L"Swapchain Fence");
-    SET_OBJECT_NAME(g_rtv_heap.get(), L"Rtv Heap");
+    SET_OBJECT_NAME(g_fence.get(), L"Swapchain Fence")
+    SET_OBJECT_NAME(g_rtv_heap.get(), L"Rtv Heap")
 }
 
 void ash::renderer::core::swapchain::resize()
 {
-    SCOPED_CPU_EVENT(L"ash::renderer::core::swapchain::resize");
+    SCOPED_CPU_EVENT(L"ash::renderer::core::swapchain::resize")
     assert(g_swapchain.get());
 
     RECT clientRect;

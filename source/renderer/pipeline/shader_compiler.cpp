@@ -1,4 +1,4 @@
-#include "shader_compiler.h"
+﻿#include "shader_compiler.h"
 #include "configs/config.h"
 #include <d3d12shader.h>
 #include <dxcapi.h>

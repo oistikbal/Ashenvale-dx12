@@ -1,6 +1,7 @@
 ﻿#include "window/window.h"
 #include "renderer/core/swapchain.h"
 #include "renderer/renderer.h"
+#include <imgui/imgui_impl_win32.h>
 
 static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -37,8 +38,13 @@ void ash::window::run()
     }
 }
 
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+
 static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+    if (ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam))
+        return true;
 
     switch (uMsg)
     {

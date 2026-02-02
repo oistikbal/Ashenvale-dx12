@@ -1,26 +1,19 @@
-﻿add_executable(Ashenvale WIN32)
-
-file(GLOB_RECURSE ASHENVALE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
-file(GLOB_RECURSE ASHENVALE_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
-file(GLOB_RECURSE ASHENVALE_CONFIGURES "${CMAKE_SOURCE_DIR}/*.h.in")
-file(GLOB_RECURSE ASHENVALE_SHADERS "${CMAKE_SOURCE_DIR}/shaders/*.hlsl")
+﻿file(GLOB_RECURSE ASHENVALE_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+file(GLOB_RECURSE ASHENVALE_HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
+file(GLOB_RECURSE ASHENVALE_CONFIGURES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/*.h.in")
+file(GLOB_RECURSE ASHENVALE_GENERATEDS CONFIGURE_DEPENDS "${CMAKE_BINARY_DIR}/generated/*.h")
+file(GLOB_RECURSE ASHENVALE_SHADERS CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/shaders/*.hlsl")
 
 set_source_files_properties(${ASHENVALE_SHADERS} PROPERTIES VS_TOOL_OVERRIDE "text")
-
-set(SHADER_DIR_DEBUG "${CMAKE_SOURCE_DIR}/shaders")
-set(SHADER_DIR_RELEASE "/shaders")
-
-set(RESOURCES_DIR_DEBUG "${CMAKE_SOURCE_DIR}/resources")
-set(RESOURCES_DIR_RELEASE "/resources")
+set_source_files_properties(${ASHENVALE_CONFIGURES} PROPERTIES VS_TOOL_OVERRIDE "text")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
-    set(SHADER_PATH "${SHADER_DIR_RELEASE}/")
-    set(SHADER_PATH "${RESOURCES_DIR_RELEASE}/")
+    set(CONFIG_SHADER_PATH "/shaders/")
+    set(CONFIG_RESOURCE_PATH "/resources/")
 else()
-    set(SHADER_PATH "${SHADER_DIR_DEBUG}/")
-    set(RESOURCE_PATH "${RESOURCES_DIR_DEBUG}/")
+    set(CONFIG_SHADER_PATH "${CMAKE_SOURCE_DIR}/shaders/")
+    set(CONFIG_RESOURCE_PATH "${CMAKE_SOURCE_DIR}/resources/")
 endif()
-
 
 configure_file(
     "${CMAKE_SOURCE_DIR}/configs/config.h.in"
@@ -28,38 +21,18 @@ configure_file(
     @ONLY
 )
 
-file(GLOB_RECURSE ASHENVALE_GENERATEDS "${CMAKE_BINARY_DIR}/generated/*.h")
+add_executable(Ashenvale WIN32)
 
-target_sources(Ashenvale 
-    PRIVATE ${ASHENVALE_HEADERS}
-    PRIVATE ${ASHENVALE_SOURCES}
-    PRIVATE ${ASHENVALE_SHADERS}
-    PRIVATE ${ASHENVALE_GENERATEDS}
+target_sources(Ashenvale PRIVATE
+     ${ASHENVALE_HEADERS}
+     ${ASHENVALE_SOURCES}
+     ${ASHENVALE_SHADERS}
+     ${ASHENVALE_GENERATEDS}
+     ${ASHENVALE_CONFIGURES}
 )
 
-source_group(
-    TREE "${CMAKE_CURRENT_SOURCE_DIR}"
-    PREFIX "Header Files"
-    FILES ${ASHENVALE_HEADERS}
-)
-
-source_group(
-    TREE "${CMAKE_CURRENT_SOURCE_DIR}"
-    PREFIX "Source Files"
-    FILES ${ASHENVALE_SOURCES}
-)
-
-source_group(
-    TREE "${CMAKE_SOURCE_DIR}/shaders"
-    PREFIX "Shaders"
-    FILES ${ASHENVALE_SHADERS}
-)
-source_group(
-    TREE "${CMAKE_BINARY_DIR}/generated/configs/"
-    PREFIX "Configs"
-    FILES ${ASHENVALE_GENERATEDS}
-)
-
+source_group(TREE "${CMAKE_SOURCE_DIR}" PREFIX "Source" FILES ${ASHENVALE_SOURCES} ${ASHENVALE_HEADERS} ${ASHENVALE_SHADERS} ${ASHENVALE_CONFIGURES})
+source_group(TREE "${CMAKE_BINARY_DIR}/generated" PREFIX "Generated" FILES ${ASHENVALE_GENERATEDS})
 
 target_include_directories(Ashenvale PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(Ashenvale PRIVATE "${CMAKE_BINARY_DIR}/generated")
@@ -90,3 +63,9 @@ COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${CMAKE_SOURCE_DIR}/shaders/"
     "$<TARGET_FILE_DIR:Ashenvale>/shaders/"
 )
+
+set(REL_SHADER_PATH "shaders/")
+set(REL_RESOURCE_PATH "resources/")
+
+set(ABS_SHADER_PATH "${CMAKE_SOURCE_DIR}/shaders/")
+set(ABS_RESOURCE_PATH "${CMAKE_SOURCE_DIR}/resources/")

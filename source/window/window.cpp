@@ -1,4 +1,5 @@
 ﻿#include "window/window.h"
+#include "editor/editor.h"
 #include "renderer/core/swapchain.h"
 #include "renderer/renderer.h"
 #include <imgui/imgui_impl_win32.h>
@@ -24,6 +25,7 @@ void ash::window::init(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
     ShowWindow(g_hwnd, nCmdShow);
     UpdateWindow(g_hwnd);
     renderer::init();
+    editor::init();
 }
 
 void ash::window::run()
@@ -39,7 +41,6 @@ void ash::window::run()
 }
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
 
 static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {

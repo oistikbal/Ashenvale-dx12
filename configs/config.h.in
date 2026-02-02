@@ -10,6 +10,6 @@
 
 namespace ash::config
 {
-constexpr const wchar_t *SHADER_PATH = L"@CONFIG_SHADER_PATH@";
-constexpr const wchar_t *RESOURCES_PATH = L"@CONFIG_RESOURCE_PATH@";
-}
+constexpr const wchar_t *SHADER_PATH = L"shaders\\";
+constexpr const wchar_t *RESOURCES_PATH = L"resources\\";
+} // namespace ash::config

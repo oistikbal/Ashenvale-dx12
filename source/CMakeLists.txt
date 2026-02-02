@@ -7,14 +7,6 @@ file(GLOB_RECURSE ASHENVALE_SHADERS CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/shade
 set_source_files_properties(${ASHENVALE_SHADERS} PROPERTIES VS_TOOL_OVERRIDE "text")
 set_source_files_properties(${ASHENVALE_CONFIGURES} PROPERTIES VS_TOOL_OVERRIDE "text")
 
-if(CMAKE_BUILD_TYPE STREQUAL "Release")
-    set(CONFIG_SHADER_PATH "/shaders/")
-    set(CONFIG_RESOURCE_PATH "/resources/")
-else()
-    set(CONFIG_SHADER_PATH "${CMAKE_SOURCE_DIR}/shaders/")
-    set(CONFIG_RESOURCE_PATH "${CMAKE_SOURCE_DIR}/resources/")
-endif()
-
 configure_file(
     "${CMAKE_SOURCE_DIR}/configs/config.h.in"
     "${CMAKE_BINARY_DIR}/generated/configs/config.h"
@@ -63,9 +55,3 @@ COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${CMAKE_SOURCE_DIR}/shaders/"
     "$<TARGET_FILE_DIR:Ashenvale>/shaders/"
 )
-
-set(REL_SHADER_PATH "shaders/")
-set(REL_RESOURCE_PATH "resources/")
-
-set(ABS_SHADER_PATH "${CMAKE_SOURCE_DIR}/shaders/")
-set(ABS_RESOURCE_PATH "${CMAKE_SOURCE_DIR}/resources/")

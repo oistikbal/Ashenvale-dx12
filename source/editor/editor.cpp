@@ -10,6 +10,7 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_dx12.h>
 #include <imgui/imgui_impl_win32.h>
+#include "IconsMaterialDesign.h"
 
 using namespace winrt;
 
@@ -48,10 +49,16 @@ void ash::editor::init()
 
     ImFontConfig config{};
     config.MergeMode = false;
-    config.PixelSnapH = true;
 
     std::string full_path = (std::filesystem::path(config::RESOURCES_PATH) / "Roboto-Regular.ttf").string();
-    io.Fonts->AddFontFromFileTTF((full_path.c_str()), 16.0f, &config);
+    io.Fonts->AddFontFromFileTTF((full_path.c_str()), 14.0f, &config);
+
+    static const ImWchar icon_ranges[] = {ICON_MIN_MD, ICON_MAX_16_MD, 0};
+    config.MergeMode = true;
+    config.GlyphOffset.y = 6;
+
+    full_path = (std::filesystem::path(config::RESOURCES_PATH) / "MaterialIcons-Regular.ttf").string();
+    io.Fonts->AddFontFromFileTTF((full_path.c_str()), 20.0f, &config, icon_ranges);
 
     ImGuiStyle &style = ImGui::GetStyle();
     ImVec4 *colors = style.Colors;

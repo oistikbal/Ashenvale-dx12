@@ -261,6 +261,8 @@ void ash::renderer::resize(D3D12_VIEWPORT viewport)
     rtv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     core::g_device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(g_viewport_rtv_heap.put()));
 
+    assert(g_viewport_rtv_heap.get());
+
     D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {};
     rtv_desc.Format = tex_desc.Format;
     rtv_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;

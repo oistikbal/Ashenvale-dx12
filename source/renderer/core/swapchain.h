@@ -15,10 +15,10 @@ inline HANDLE g_fence_event = 0;
 inline D3D12_VIEWPORT g_viewport;
 inline DXGI_FORMAT g_format;
 
-} // namespace ash::renderer::core
+} // namespace ash::renderer::core::swapchain
 
 namespace ash::renderer::core::swapchain
 {
 void init(DXGI_FORMAT format);
 void resize();
-} // namespace ash::renderer::core
+} // namespace ash::renderer::core::swapchain

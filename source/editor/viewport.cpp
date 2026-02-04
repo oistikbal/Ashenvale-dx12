@@ -1,5 +1,6 @@
 
 #include "viewport.h"
+#include "IconsMaterialDesign.h"
 #include "editor.h"
 #include "renderer/core/device.h"
 #include "renderer/renderer.h"
@@ -25,7 +26,7 @@ void create_srv()
     ash::renderer::core::g_device->CreateShaderResourceView(ash::renderer::g_viewport_texture.get(), &srv_desc,
                                                             cpu_handle);
 }
-}
+} // namespace
 
 void ash::editor::viewport::init()
 {
@@ -38,8 +39,8 @@ void ash::editor::viewport::render()
     if (!g_is_open)
         return;
 
-    ;
-    if (ImGui::Begin("Viewport", &g_is_open))
+ 
+    if (ImGui::Begin(ICON_MD_LANDSCAPE " Viewport", &g_is_open))
     {
         ImVec2 imagePos = ImGui::GetCursorScreenPos();
 
@@ -69,8 +70,7 @@ void ash::editor::viewport::render()
         D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle = g_imgui_heap->GetGPUDescriptorHandleForHeapStart();
         gpu_handle.ptr += handle_size;
 
-        ImGui::Image((ImTextureID)(intptr_t)gpu_handle.ptr,
-                     ImVec2(newWidth, newHeight));
+        ImGui::Image((ImTextureID)(intptr_t)gpu_handle.ptr, ImVec2(newWidth, newHeight));
     }
 
     ImGui::End();

@@ -45,7 +45,7 @@ void ash::renderer::pipeline::init()
     psoDesc.SampleMask = UINT_MAX;
     psoDesc.SampleDesc.Count = 1;
     psoDesc.NumRenderTargets = 1;
-    psoDesc.RTVFormats[0] = core::swapchain::g_format;
+    psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
     psoDesc.RasterizerState = raster_desc;
     psoDesc.DepthStencilState.DepthEnable = FALSE;
     psoDesc.DepthStencilState.StencilEnable = FALSE;

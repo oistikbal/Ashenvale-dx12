@@ -39,15 +39,11 @@ void ash::editor::viewport::render()
     if (!g_is_open)
         return;
 
- 
-    if (ImGui::Begin(ICON_MD_LANDSCAPE " Viewport", &g_is_open))
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    if (ImGui::Begin(ICON_MD_LANDSCAPE " Viewport ###Viewport", &g_is_open))
     {
-        ImVec2 imagePos = ImGui::GetCursorScreenPos();
-
         ImVec2 size = ImGui::GetContentRegionAvail();
-        int topbarWidth = size.x < 16 ? 16 : static_cast<int>(size.x);
-
-        size = ImGui::GetContentRegionAvail();
         int newWidth = size.x < 16 ? 16 : static_cast<int>(size.x);
         int newHeight = size.y < 16 ? 16 : static_cast<int>(size.y);
 
@@ -74,4 +70,5 @@ void ash::editor::viewport::render()
     }
 
     ImGui::End();
+    ImGui::PopStyleVar(2);
 }

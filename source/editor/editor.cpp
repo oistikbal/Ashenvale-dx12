@@ -1,4 +1,5 @@
 #include "editor.h"
+#include "IconsMaterialDesign.h"
 #include "common.h"
 #include "configs/config.h"
 #include "renderer/core/command_queue.h"
@@ -10,9 +11,17 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_dx12.h>
 #include <imgui/imgui_impl_win32.h>
-#include "IconsMaterialDesign.h"
 
 using namespace winrt;
+
+namespace
+{
+void load_default_ini()
+{
+    std::string full_path = (std::filesystem::path(ash::config::RESOURCES_PATH) / "imgui.ini").string();
+    ImGui::LoadIniSettingsFromDisk(full_path.c_str());
+}
+} // namespace
 
 void ash::editor::init()
 {
@@ -35,7 +44,7 @@ void ash::editor::init()
     ImGui_ImplDX12_InitInfo init_info = {};
     init_info.Device = renderer::core::g_device.get();
     init_info.CommandQueue = renderer::core::command_queue::g_direct.get();
-    init_info.NumFramesInFlight = 2;
+    init_info.NumFramesInFlight = 1;
     init_info.RTVFormat = renderer::core::swapchain::g_format;
 
     init_info.SrvDescriptorHeap = g_imgui_heap.get();
@@ -153,6 +162,11 @@ void ash::editor::init()
     style.DockingSeparatorSize = 1.0f;
 
     viewport::init();
+
+    if (!std::filesystem::exists("imgui.ini"))
+    {
+        load_default_ini();
+    }
 }
 
 void ash::editor::render()
@@ -172,6 +186,15 @@ void ash::editor::render()
         {
             if (ImGui::MenuItem("Viewport"))
                 editor::viewport::g_is_open = true;
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Layout"))
+        {
+            if (ImGui::MenuItem("Load default"))
+            {
+                load_default_ini();
+            }
+
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();

@@ -6,7 +6,9 @@ namespace ash::renderer::core::swapchain
 {
 inline winrt::com_ptr<IDXGISwapChain4> g_swapchain = nullptr;
 inline winrt::com_ptr<ID3D12DescriptorHeap> g_rtv_heap = nullptr;
+inline winrt::com_ptr<ID3D12DescriptorHeap> g_dsv_heap = nullptr;
 inline winrt::com_ptr<ID3D12Resource> g_render_targets[2];
+inline winrt::com_ptr<ID3D12Resource> g_dsv_buffer;
 inline winrt::com_ptr<ID3D12Fence> g_fence;
 
 inline uint8_t g_current_backbuffer = 0;

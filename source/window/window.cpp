@@ -17,12 +17,15 @@ void ash::window::init(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     RegisterClass(&wc);
 
-    g_hwnd = CreateWindowEx(0, wc.lpszClassName, "Ashenvale", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 1280,
-                            720, nullptr, nullptr, wc.hInstance, nullptr);
+    int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+    int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+
+    g_hwnd = CreateWindowEx(0, wc.lpszClassName, "Ashenvale", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
+                            screenWidth, screenHeight, nullptr, nullptr, wc.hInstance, nullptr);
 
     assert(g_hwnd);
 
-    ShowWindow(g_hwnd, nCmdShow);
+    ShowWindow(g_hwnd, SW_SHOWMAXIMIZED);
     UpdateWindow(g_hwnd);
     renderer::init();
     editor::init();

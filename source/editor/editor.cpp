@@ -18,6 +18,8 @@ namespace
 {
 void load_default_ini()
 {
+    SCOPED_CPU_EVENT(L"ash::editor::load_default_ini")
+
     std::string full_path = (std::filesystem::path(ash::config::RESOURCES_PATH) / "imgui.ini").string();
     ImGui::LoadIniSettingsFromDisk(full_path.c_str());
 }
@@ -171,6 +173,8 @@ void ash::editor::init()
 
 void ash::editor::render()
 {
+    SCOPED_CPU_EVENT(L"ash::editor::render")
+
     ImGui_ImplDX12_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
@@ -209,6 +213,8 @@ void ash::editor::render()
 
 void ash::editor::render_backend()
 {
+    SCOPED_CPU_EVENT(L"ash::editor::render_backend")
+
     ID3D12DescriptorHeap *heaps[] = {g_imgui_heap.get()};
     renderer::core::command_queue::g_command_list->SetDescriptorHeaps(1, heaps);
     ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), renderer::core::command_queue::g_command_list.get());

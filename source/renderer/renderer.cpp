@@ -18,7 +18,7 @@ namespace
 {
 void handle_window_events()
 {
-    SCOPED_CPU_EVENT(L"::handle_window_events")
+    SCOPED_CPU_EVENT(L"ash::renderer::handle_window_events")
 
     ash::window::event::swap_buffers(ash::window::g_queue);
     auto &q = ash::window::event::get_back_buffer(ash::window::g_queue);
@@ -97,8 +97,8 @@ void ash::renderer::init()
     pipeline::init();
 
     g_viewport = {};
-    g_viewport.Width = 1024;
-    g_viewport.Height = 1024;
+    g_viewport.Width = closeMatch.Width;
+    g_viewport.Height = closeMatch.Height;
     g_viewport.MinDepth = 0.0f;
     g_viewport.MaxDepth = 1.0f;
     g_viewport.TopLeftX = 0.0f;
@@ -167,6 +167,9 @@ void ash::renderer::render()
                 core::swapchain::g_rtv_heap->GetCPUDescriptorHandleForHeapStart();
             swapchain_rtv_Handle.ptr += frame_index * rtv_descriptor_size;
 
+            D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle =
+                core::swapchain::g_dsv_heap->GetCPUDescriptorHandleForHeapStart();
+
             barrier = {};
             barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
             barrier.Transition.pResource = core::swapchain::g_render_targets[frame_index].get();
@@ -176,9 +179,10 @@ void ash::renderer::render()
 
             core::command_queue::g_command_list->ResourceBarrier(1, &barrier);
 
-            core::command_queue::g_command_list->OMSetRenderTargets(1, &swapchain_rtv_Handle, FALSE, nullptr);
+            core::command_queue::g_command_list->OMSetRenderTargets(1, &swapchain_rtv_Handle, FALSE, &dsv_handle);
 
             core::command_queue::g_command_list->ClearRenderTargetView(swapchain_rtv_Handle, clear_color, 0, nullptr);
+            core::command_queue::g_command_list->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0,0, nullptr);
 
             editor::render_backend();
 

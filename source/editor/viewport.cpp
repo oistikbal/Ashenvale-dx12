@@ -12,6 +12,7 @@ namespace
 {
 void create_srv()
 {
+    SCOPED_CPU_EVENT(L"ash::editor::viewport::create_srv");
     D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
     srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     srv_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -30,6 +31,7 @@ void create_srv()
 
 void ash::editor::viewport::init()
 {
+    SCOPED_CPU_EVENT(L"ash::editor::viewport::init");
     create_srv();
 }
 
@@ -41,7 +43,7 @@ void ash::editor::viewport::render()
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-    if (ImGui::Begin(ICON_MD_LANDSCAPE " Viewport ###Viewport", &g_is_open))
+    if (g_is_open = ImGui::Begin(ICON_MD_LANDSCAPE " Viewport ###Viewport", &g_is_open))
     {
         ImVec2 size = ImGui::GetContentRegionAvail();
         int newWidth = size.x < 16 ? 16 : static_cast<int>(size.x);

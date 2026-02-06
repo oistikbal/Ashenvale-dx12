@@ -41,15 +41,19 @@ void ash::renderer::pipeline::init()
     psoDesc.VS = {shader::g_triangle_vs.blob->GetBufferPointer(), shader::g_triangle_vs.blob->GetBufferSize()};
     psoDesc.PS = {shader::g_triangle_ps.blob->GetBufferPointer(), shader::g_triangle_ps.blob->GetBufferSize()};
 
+    D3D12_DEPTH_STENCIL_DESC ds = {};
+    ds.DepthEnable = TRUE;
+    ds.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+    ds.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+
     psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
     psoDesc.SampleMask = UINT_MAX;
     psoDesc.SampleDesc.Count = 1;
     psoDesc.NumRenderTargets = 1;
     psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
     psoDesc.RasterizerState = raster_desc;
-    psoDesc.DepthStencilState.DepthEnable = FALSE;
-    psoDesc.DepthStencilState.StencilEnable = FALSE;
     psoDesc.BlendState = blend_desc;
+    psoDesc.DepthStencilState = ds;
 
     core::g_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(g_triangle.pso.put()));
     SET_OBJECT_NAME(g_triangle.pso.get(), L"Triangle PSO");

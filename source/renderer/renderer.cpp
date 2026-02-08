@@ -75,6 +75,33 @@ void ash::renderer::init()
     D3D12CreateDevice(core::g_adapter.get(), D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(core::g_device.put()));
     assert(core::g_device.get());
 
+    D3D12_FEATURE_DATA_D3D12_OPTIONS options = {};
+    core::g_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(options));
+
+    switch (options.ResourceBindingTier)
+    {
+    case D3D12_RESOURCE_BINDING_TIER_1:
+        MessageBox(window::g_hwnd, "Tier 1 GPU is not supported.", 0, MB_ICONWARNING);
+        ExitProcess(0);
+        break;
+    case D3D12_RESOURCE_BINDING_TIER_2:
+        MessageBox(window::g_hwnd, "Tier 2 GPU is not supported.", 0, MB_ICONWARNING);
+        ExitProcess(0);
+        break;
+    case D3D12_RESOURCE_BINDING_TIER_3:
+        break;
+    }
+
+    D3D12_FEATURE_DATA_SHADER_MODEL shaderModel = {D3D_SHADER_MODEL_6_6};
+    if (SUCCEEDED(core::g_device->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &shaderModel, sizeof(shaderModel))))
+    {
+        if (shaderModel.HighestShaderModel < D3D_SHADER_MODEL_6_6)
+        {
+            MessageBox(window::g_hwnd, "Shader Model 6.6 is required.", 0, MB_ICONWARNING);
+            ExitProcess(0);
+        }
+    }
+
     com_ptr<IDXGIOutput> adapterOutput;
     core::g_adapter->EnumOutputs(0, adapterOutput.put());
     assert(adapterOutput.get());
@@ -104,6 +131,22 @@ void ash::renderer::init()
     g_viewport.TopLeftX = 0.0f;
     g_viewport.TopLeftY = 0.0f;
 
+    D3D12_DESCRIPTOR_HEAP_DESC viewport_rtv_heap_desc = {};
+    viewport_rtv_heap_desc.NumDescriptors = 1;
+    viewport_rtv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+    viewport_rtv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+    core::g_device->CreateDescriptorHeap(&viewport_rtv_heap_desc, IID_PPV_ARGS(g_viewport_rtv_heap.put()));
+
+    assert(g_viewport_rtv_heap.get());
+
+    D3D12_DESCRIPTOR_HEAP_DESC cbv_srv_uav_heap_desc = {};
+    cbv_srv_uav_heap_desc.NumDescriptors = 1000000;
+    cbv_srv_uav_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    cbv_srv_uav_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    core::g_device->CreateDescriptorHeap(&cbv_srv_uav_heap_desc, IID_PPV_ARGS(g_cbv_srv_uav_heap.put()));
+
+    assert(g_cbv_srv_uav_heap.get());
+
     renderer::resize(g_viewport);
 
     g_renderer_thread = std::thread(render);
@@ -125,7 +168,13 @@ void ash::renderer::render()
         {
             constexpr float clear_color[] = {0.0f, 0.0f, 0.0f, 1.0f};
 
-            // Viewport
+            ID3D12DescriptorHeap *heap[] = {g_cbv_srv_uav_heap.get()};
+            core::command_queue::g_command_list->SetDescriptorHeaps(1, heap);
+
+            core::command_queue::g_command_list->SetGraphicsRootSignature(pipeline::g_triangle.root_signature.get());
+
+            core::command_queue::g_command_list->SetGraphicsRootDescriptorTable(
+                0, g_cbv_srv_uav_heap.get()->GetGPUDescriptorHandleForHeapStart());
 
             D3D12_RESOURCE_BARRIER barrier = {};
             barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -135,15 +184,20 @@ void ash::renderer::render()
             barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
             core::command_queue::g_command_list->ResourceBarrier(1, &barrier);
-            D3D12_CPU_DESCRIPTOR_HANDLE viewport_rtv_handle = g_viewport_rtv_heap->GetCPUDescriptorHandleForHeapStart();
 
-            core::command_queue::g_command_list->OMSetRenderTargets(1, &viewport_rtv_handle, FALSE, nullptr);
+            D3D12_CPU_DESCRIPTOR_HANDLE viewport_rtv_handle = g_viewport_rtv_heap->GetCPUDescriptorHandleForHeapStart();
+            D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle =
+                core::swapchain::g_swapchain_dsv_heap->GetCPUDescriptorHandleForHeapStart();
+
+            core::command_queue::g_command_list->OMSetRenderTargets(1, &viewport_rtv_handle, FALSE, &dsv_handle);
+
             core::command_queue::g_command_list->ClearRenderTargetView(viewport_rtv_handle, clear_color, 0, nullptr);
+            core::command_queue::g_command_list->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0,
+                                                                       nullptr);
 
             core::command_queue::g_command_list->SetPipelineState(pipeline::g_triangle.pso.get());
-            core::command_queue::g_command_list->SetGraphicsRootSignature(pipeline::g_triangle.root_signature.get());
-            D3D12_RECT scissorRect = {0, 0, g_viewport.Width, g_viewport.Height};
             core::command_queue::g_command_list->RSSetViewports(1, &renderer::g_viewport);
+            D3D12_RECT scissorRect = {0, 0, g_viewport.Width, g_viewport.Height};
             core::command_queue::g_command_list->RSSetScissorRects(1, &scissorRect);
             core::command_queue::g_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
             core::command_queue::g_command_list->DrawInstanced(3, 1, 0, 0);
@@ -164,11 +218,8 @@ void ash::renderer::render()
             const uint32_t rtv_descriptor_size =
                 core::g_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
             D3D12_CPU_DESCRIPTOR_HANDLE swapchain_rtv_Handle =
-                core::swapchain::g_rtv_heap->GetCPUDescriptorHandleForHeapStart();
+                core::swapchain::g_swapchain_rtv_heap->GetCPUDescriptorHandleForHeapStart();
             swapchain_rtv_Handle.ptr += frame_index * rtv_descriptor_size;
-
-            D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle =
-                core::swapchain::g_dsv_heap->GetCPUDescriptorHandleForHeapStart();
 
             barrier = {};
             barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -179,10 +230,8 @@ void ash::renderer::render()
 
             core::command_queue::g_command_list->ResourceBarrier(1, &barrier);
 
-            core::command_queue::g_command_list->OMSetRenderTargets(1, &swapchain_rtv_Handle, FALSE, &dsv_handle);
-
+            core::command_queue::g_command_list->OMSetRenderTargets(1, &swapchain_rtv_Handle, FALSE, nullptr);
             core::command_queue::g_command_list->ClearRenderTargetView(swapchain_rtv_Handle, clear_color, 0, nullptr);
-            core::command_queue::g_command_list->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0,0, nullptr);
 
             editor::render_backend();
 
@@ -259,14 +308,6 @@ void ash::renderer::resize(D3D12_VIEWPORT viewport)
 
     SET_OBJECT_NAME(g_viewport_texture.get(), L"Viewport Texture");
 
-    D3D12_DESCRIPTOR_HEAP_DESC rtv_heap_desc = {};
-    rtv_heap_desc.NumDescriptors = 1;
-    rtv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-    rtv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-    core::g_device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(g_viewport_rtv_heap.put()));
-
-    assert(g_viewport_rtv_heap.get());
-
     D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {};
     rtv_desc.Format = tex_desc.Format;
     rtv_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
@@ -277,5 +318,17 @@ void ash::renderer::resize(D3D12_VIEWPORT viewport)
 
     core::g_device->CreateRenderTargetView(g_viewport_texture.get(), &rtv_desc, rtv_handle);
 
-    SET_OBJECT_NAME(g_viewport_rtv_heap.get(), L"Viewport Rtv Heap");
+    D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
+    srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    srv_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    srv_desc.Texture2D.MipLevels = 1;
+
+    auto handle_size =
+        ash::renderer::core::g_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle = ash::renderer::g_cbv_srv_uav_heap->GetCPUDescriptorHandleForHeapStart();
+    cpu_handle.ptr += handle_size;
+
+    ash::renderer::core::g_device->CreateShaderResourceView(ash::renderer::g_viewport_texture.get(), &srv_desc,
+                                                            cpu_handle);
 }

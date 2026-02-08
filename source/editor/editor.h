@@ -5,7 +5,6 @@
 
 namespace ash::editor
 {
-inline winrt::com_ptr<ID3D12DescriptorHeap> g_imgui_heap;
 }
 
 namespace ash::editor

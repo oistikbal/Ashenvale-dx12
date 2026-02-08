@@ -11,6 +11,7 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_dx12.h>
 #include <imgui/imgui_impl_win32.h>
+#include "renderer/renderer.h"
 
 using namespace winrt;
 
@@ -27,14 +28,9 @@ void load_default_ini()
 
 void ash::editor::init()
 {
-    D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-    desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    desc.NumDescriptors = 100;
-    desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-    renderer::core::g_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(g_imgui_heap.put()));
 
-    D3D12_CPU_DESCRIPTOR_HANDLE cpu = g_imgui_heap->GetCPUDescriptorHandleForHeapStart();
-    D3D12_GPU_DESCRIPTOR_HANDLE gpu = g_imgui_heap->GetGPUDescriptorHandleForHeapStart();
+    D3D12_CPU_DESCRIPTOR_HANDLE cpu = renderer::g_cbv_srv_uav_heap->GetCPUDescriptorHandleForHeapStart();
+    D3D12_GPU_DESCRIPTOR_HANDLE gpu = renderer::g_cbv_srv_uav_heap->GetGPUDescriptorHandleForHeapStart();
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -49,7 +45,7 @@ void ash::editor::init()
     init_info.NumFramesInFlight = 1;
     init_info.RTVFormat = renderer::core::swapchain::g_format;
 
-    init_info.SrvDescriptorHeap = g_imgui_heap.get();
+    init_info.SrvDescriptorHeap = renderer::g_cbv_srv_uav_heap.get();
     init_info.SrvDescriptorAllocFn = nullptr;
     init_info.SrvDescriptorFreeFn = nullptr;
     init_info.LegacySingleSrvCpuDescriptor = cpu;
@@ -214,8 +210,5 @@ void ash::editor::render()
 void ash::editor::render_backend()
 {
     SCOPED_CPU_EVENT(L"ash::editor::render_backend")
-
-    ID3D12DescriptorHeap *heaps[] = {g_imgui_heap.get()};
-    renderer::core::command_queue::g_command_list->SetDescriptorHeaps(1, heaps);
     ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), renderer::core::command_queue::g_command_list.get());
 }

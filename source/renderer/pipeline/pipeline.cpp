@@ -54,6 +54,7 @@ void ash::renderer::pipeline::init()
     psoDesc.RasterizerState = raster_desc;
     psoDesc.BlendState = blend_desc;
     psoDesc.DepthStencilState = ds;
+    psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
     core::g_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(g_triangle.pso.put()));
     SET_OBJECT_NAME(g_triangle.pso.get(), L"Triangle PSO");

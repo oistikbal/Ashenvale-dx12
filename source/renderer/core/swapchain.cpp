@@ -43,16 +43,16 @@ void ash::renderer::core::swapchain::init(DXGI_FORMAT format)
     rtv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
     rtv_heap_desc.NumDescriptors = 2;
     rtv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-    core::g_device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(g_rtv_heap.put()));
-    SET_OBJECT_NAME(g_rtv_heap, L"Rtv Heap")
+    core::g_device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(g_swapchain_rtv_heap.put()));
+    SET_OBJECT_NAME(g_swapchain_rtv_heap, L"Rtv Heap")
 
 
     D3D12_DESCRIPTOR_HEAP_DESC dsv_heap_desc = {};
     dsv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
     dsv_heap_desc.NumDescriptors = 1;
     dsv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-    core::g_device->CreateDescriptorHeap(&dsv_heap_desc, IID_PPV_ARGS(g_dsv_heap.put()));
-    SET_OBJECT_NAME(g_dsv_heap, L"Dsv Heap")
+    core::g_device->CreateDescriptorHeap(&dsv_heap_desc, IID_PPV_ARGS(g_swapchain_dsv_heap.put()));
+    SET_OBJECT_NAME(g_swapchain_dsv_heap, L"Dsv Heap")
 
 
     resize();
@@ -93,7 +93,7 @@ void ash::renderer::core::swapchain::resize()
     UINT backBufferIndex = g_swapchain->GetCurrentBackBufferIndex();
 
     UINT rtvDescriptorSize = core::g_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-    D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = g_rtv_heap->GetCPUDescriptorHandleForHeapStart();
+    D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = g_swapchain_rtv_heap->GetCPUDescriptorHandleForHeapStart();
 
     for (UINT i = 0; i < 2; ++i)
     {
@@ -135,5 +135,5 @@ void ash::renderer::core::swapchain::resize()
     dsv_view_desc.Flags = D3D12_DSV_FLAG_NONE;
 
     core::g_device->CreateDepthStencilView(g_dsv_buffer.get(), &dsv_view_desc,
-                                           g_dsv_heap->GetCPUDescriptorHandleForHeapStart());
+                                           g_swapchain_dsv_heap->GetCPUDescriptorHandleForHeapStart());
 }

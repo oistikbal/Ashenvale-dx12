@@ -138,6 +138,7 @@ void ash::renderer::init()
     core::g_device->CreateDescriptorHeap(&viewport_rtv_heap_desc, IID_PPV_ARGS(g_viewport_rtv_heap.put()));
 
     assert(g_viewport_rtv_heap.get());
+    SET_OBJECT_NAME(g_viewport_rtv_heap.get(), L"Viewport Rtv Desc Heap");
 
     D3D12_DESCRIPTOR_HEAP_DESC cbv_srv_uav_heap_desc = {};
     cbv_srv_uav_heap_desc.NumDescriptors = 1000000;
@@ -146,6 +147,16 @@ void ash::renderer::init()
     core::g_device->CreateDescriptorHeap(&cbv_srv_uav_heap_desc, IID_PPV_ARGS(g_cbv_srv_uav_heap.put()));
 
     assert(g_cbv_srv_uav_heap.get());
+    SET_OBJECT_NAME(g_cbv_srv_uav_heap.get(), L"CBV SRV UAV Desc Heap");
+
+    D3D12_DESCRIPTOR_HEAP_DESC sampler_heap_desc = {};
+    sampler_heap_desc.NumDescriptors = 2048;
+    sampler_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+    sampler_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    core::g_device->CreateDescriptorHeap(&sampler_heap_desc, IID_PPV_ARGS(g_sampler_heap.put()));
+
+    assert(g_sampler_heap.get());
+    SET_OBJECT_NAME(g_sampler_heap.get(), L"Sampler Desc Heap");
 
     renderer::resize(g_viewport);
 
@@ -166,15 +177,14 @@ void ash::renderer::render()
         editor::render();
 
         {
+            auto &command_list = core::command_queue::g_command_list;
+
             constexpr float clear_color[] = {0.0f, 0.0f, 0.0f, 1.0f};
 
-            ID3D12DescriptorHeap *heap[] = {g_cbv_srv_uav_heap.get()};
-            core::command_queue::g_command_list->SetDescriptorHeaps(1, heap);
+            ID3D12DescriptorHeap *heap[] = {g_cbv_srv_uav_heap.get(), g_sampler_heap.get()};
+            command_list->SetDescriptorHeaps(2, heap);
 
-            core::command_queue::g_command_list->SetGraphicsRootSignature(pipeline::g_triangle.root_signature.get());
-
-            core::command_queue::g_command_list->SetGraphicsRootDescriptorTable(
-                0, g_cbv_srv_uav_heap.get()->GetGPUDescriptorHandleForHeapStart());
+            command_list->SetGraphicsRootSignature(pipeline::g_triangle.root_signature.get());
 
             D3D12_RESOURCE_BARRIER barrier = {};
             barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -183,24 +193,23 @@ void ash::renderer::render()
             barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
             barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
-            core::command_queue::g_command_list->ResourceBarrier(1, &barrier);
+            command_list->ResourceBarrier(1, &barrier);
 
             D3D12_CPU_DESCRIPTOR_HANDLE viewport_rtv_handle = g_viewport_rtv_heap->GetCPUDescriptorHandleForHeapStart();
             D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle =
                 core::swapchain::g_swapchain_dsv_heap->GetCPUDescriptorHandleForHeapStart();
 
-            core::command_queue::g_command_list->OMSetRenderTargets(1, &viewport_rtv_handle, FALSE, &dsv_handle);
+            command_list->OMSetRenderTargets(1, &viewport_rtv_handle, FALSE, &dsv_handle);
 
-            core::command_queue::g_command_list->ClearRenderTargetView(viewport_rtv_handle, clear_color, 0, nullptr);
-            core::command_queue::g_command_list->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0,
-                                                                       nullptr);
+            command_list->ClearRenderTargetView(viewport_rtv_handle, clear_color, 0, nullptr);
+            command_list->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
-            core::command_queue::g_command_list->SetPipelineState(pipeline::g_triangle.pso.get());
-            core::command_queue::g_command_list->RSSetViewports(1, &renderer::g_viewport);
+            command_list->SetPipelineState(pipeline::g_triangle.pso.get());
+            command_list->RSSetViewports(1, &renderer::g_viewport);
             D3D12_RECT scissorRect = {0, 0, g_viewport.Width, g_viewport.Height};
-            core::command_queue::g_command_list->RSSetScissorRects(1, &scissorRect);
-            core::command_queue::g_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-            core::command_queue::g_command_list->DrawInstanced(3, 1, 0, 0);
+            command_list->RSSetScissorRects(1, &scissorRect);
+            command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            command_list->DrawInstanced(3, 1, 0, 0);
 
             barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
             barrier.Transition.pResource = g_viewport_texture.get();
@@ -208,7 +217,7 @@ void ash::renderer::render()
             barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
             barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
-            core::command_queue::g_command_list->ResourceBarrier(1, &barrier);
+            command_list->ResourceBarrier(1, &barrier);
 
             //// Swapchain
 
@@ -228,10 +237,10 @@ void ash::renderer::render()
             barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
             barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
-            core::command_queue::g_command_list->ResourceBarrier(1, &barrier);
+            command_list->ResourceBarrier(1, &barrier);
 
-            core::command_queue::g_command_list->OMSetRenderTargets(1, &swapchain_rtv_Handle, FALSE, nullptr);
-            core::command_queue::g_command_list->ClearRenderTargetView(swapchain_rtv_Handle, clear_color, 0, nullptr);
+            command_list->OMSetRenderTargets(1, &swapchain_rtv_Handle, FALSE, nullptr);
+            command_list->ClearRenderTargetView(swapchain_rtv_Handle, clear_color, 0, nullptr);
 
             editor::render_backend();
 
@@ -242,8 +251,8 @@ void ash::renderer::render()
             barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
             barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
-            core::command_queue::g_command_list->ResourceBarrier(1, &barrier);
-            core::command_queue::g_command_list->Close();
+            command_list->ResourceBarrier(1, &barrier);
+            command_list->Close();
         }
 
         ID3D12CommandList *cmdLists[] = {core::command_queue::g_command_list.get()};
@@ -276,6 +285,8 @@ void ash::renderer::stop()
 
 void ash::renderer::resize(D3D12_VIEWPORT viewport)
 {
+    SCOPED_CPU_EVENT(L"ash::renderer::resize")
+
     g_viewport = viewport;
 
     D3D12_RESOURCE_DESC tex_desc = {};

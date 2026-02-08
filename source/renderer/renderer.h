@@ -11,6 +11,7 @@ inline std::thread g_renderer_thread;
 inline std::atomic<bool> g_running = true;
 
 inline winrt::com_ptr<ID3D12DescriptorHeap> g_cbv_srv_uav_heap;
+inline winrt::com_ptr<ID3D12DescriptorHeap> g_sampler_heap;
 inline winrt::com_ptr<ID3D12DescriptorHeap> g_viewport_rtv_heap;
 inline winrt::com_ptr<ID3D12DescriptorHeap> g_rtv_heap;
 inline winrt::com_ptr<ID3D12Resource> g_viewport_texture;

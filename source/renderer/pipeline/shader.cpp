@@ -37,6 +37,6 @@ void init_shader(ash::renderer::pipeline::shader::shader &shader, const wchar_t 
 
 void ash::renderer::pipeline::shader::init()
 {
-    init_shader(g_triangle_vs, L"triangle.hlsl", L"vs_main", L"vs_6_8");
-    init_shader(g_triangle_ps, L"triangle.hlsl", L"ps_main", L"ps_6_8");
+    init_shader(g_triangle_vs, L"triangle.hlsl", L"vs_main", L"vs_6_6");
+    init_shader(g_triangle_ps, L"triangle.hlsl", L"ps_main", L"ps_6_6");
 }

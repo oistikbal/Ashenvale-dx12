@@ -1,14 +1,14 @@
 #include "pipeline.h"
-#include "renderer/core/device.h"
 #include "renderer/core/swapchain.h"
 #include "shader.h"
+#include <renderer/renderer.h>
 
 using namespace winrt;
 
 void ash::rhi_pl_init()
 {
     SCOPED_CPU_EVENT(L"ash::rhi_pl_init");
-    rhi_dev_g_device->CreateRootSignature(0, rhi_sh_g_triangle_vs.root_blob->GetBufferPointer(),
+    rhi_g_device->CreateRootSignature(0, rhi_sh_g_triangle_vs.root_blob->GetBufferPointer(),
                                      rhi_sh_g_triangle_vs.root_blob->GetBufferSize(),
                                      IID_PPV_ARGS(rhi_pl_g_triangle.root_signature.put()));
 
@@ -56,7 +56,7 @@ void ash::rhi_pl_init()
     psoDesc.DepthStencilState = ds;
     psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
-    rhi_dev_g_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(rhi_pl_g_triangle.pso.put()));
+    rhi_g_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(rhi_pl_g_triangle.pso.put()));
     SET_OBJECT_NAME(rhi_pl_g_triangle.pso.get(), L"Triangle PSO");
 }
 

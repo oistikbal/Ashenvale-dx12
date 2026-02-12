@@ -1,7 +1,7 @@
 #include "swapchain.h"
 #include "renderer/core/command_queue.h"
-#include "renderer/core/device.h"
 #include "window/window.h"
+#include <renderer/renderer.h>
 
 using namespace winrt;
 
@@ -43,19 +43,19 @@ void ash::rhi_sw_init(DXGI_FORMAT format)
     rtv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
     rtv_heap_desc.NumDescriptors = 2;
     rtv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-    rhi_dev_g_device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(rhi_sw_g_swapchain_rtv_heap.put()));
+    rhi_g_device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(rhi_sw_g_swapchain_rtv_heap.put()));
     SET_OBJECT_NAME(rhi_sw_g_swapchain_rtv_heap, L"Rtv Heap")
 
     D3D12_DESCRIPTOR_HEAP_DESC dsv_heap_desc = {};
     dsv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
     dsv_heap_desc.NumDescriptors = 1;
     dsv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-    rhi_dev_g_device->CreateDescriptorHeap(&dsv_heap_desc, IID_PPV_ARGS(rhi_sw_g_swapchain_dsv_heap.put()));
+    rhi_g_device->CreateDescriptorHeap(&dsv_heap_desc, IID_PPV_ARGS(rhi_sw_g_swapchain_dsv_heap.put()));
     SET_OBJECT_NAME(rhi_sw_g_swapchain_dsv_heap, L"Dsv Heap")
 
     rhi_sw_resize();
     rhi_sw_g_fence_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-    rhi_dev_g_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(rhi_sw_g_fence.put()));
+    rhi_g_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(rhi_sw_g_fence.put()));
     SET_OBJECT_NAME(rhi_sw_g_fence.get(), L"Swapchain Fence")
 }
 
@@ -90,13 +90,13 @@ void ash::rhi_sw_resize()
 
     UINT backBufferIndex = rhi_sw_g_swapchain->GetCurrentBackBufferIndex();
 
-    UINT rtvDescriptorSize = rhi_dev_g_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    UINT rtvDescriptorSize = rhi_g_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
     D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = rhi_sw_g_swapchain_rtv_heap->GetCPUDescriptorHandleForHeapStart();
 
     for (UINT i = 0; i < 2; ++i)
     {
         rhi_sw_g_swapchain->GetBuffer(i, IID_PPV_ARGS(rhi_sw_g_render_targets[i].put()));
-        rhi_dev_g_device->CreateRenderTargetView(rhi_sw_g_render_targets[i].get(), nullptr, rtvHandle);
+        rhi_g_device->CreateRenderTargetView(rhi_sw_g_render_targets[i].get(), nullptr, rtvHandle);
         rtvHandle.ptr += rtvDescriptorSize;
     }
 
@@ -121,7 +121,7 @@ void ash::rhi_sw_resize()
     D3D12_HEAP_PROPERTIES heap_props = {};
     heap_props.Type = D3D12_HEAP_TYPE_DEFAULT;
 
-    rhi_dev_g_device->CreateCommittedResource(&heap_props, D3D12_HEAP_FLAG_NONE, &depth_desc,
+    rhi_g_device->CreateCommittedResource(&heap_props, D3D12_HEAP_FLAG_NONE, &depth_desc,
                                               D3D12_RESOURCE_STATE_DEPTH_WRITE, &depth_optimized_clear_value,
                                               IID_PPV_ARGS(rhi_sw_g_dsv_buffer.put()));
 
@@ -132,6 +132,6 @@ void ash::rhi_sw_resize()
     dsv_view_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
     dsv_view_desc.Flags = D3D12_DSV_FLAG_NONE;
 
-    rhi_dev_g_device->CreateDepthStencilView(rhi_sw_g_dsv_buffer.get(), &dsv_view_desc,
+    rhi_g_device->CreateDepthStencilView(rhi_sw_g_dsv_buffer.get(), &dsv_view_desc,
                                              rhi_sw_g_swapchain_dsv_heap->GetCPUDescriptorHandleForHeapStart());
 }

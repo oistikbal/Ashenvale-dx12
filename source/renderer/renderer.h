@@ -16,6 +16,10 @@ inline winrt::com_ptr<ID3D12DescriptorHeap> rhi_g_viewport_rtv_heap;
 inline winrt::com_ptr<ID3D12DescriptorHeap> rhi_g_rtv_heap;
 inline winrt::com_ptr<ID3D12Resource> rhi_g_viewport_texture;
 
+inline winrt::com_ptr<ID3D12Device> rhi_g_device;
+inline winrt::com_ptr<IDXGIAdapter> rhi_g_adapter;
+inline winrt::com_ptr<IDXGIOutput> rhi_g_output;
+
 inline D3D12_VIEWPORT rhi_g_viewport;
 inline DXGI_FORMAT rhi_g_format;
 } // namespace ash

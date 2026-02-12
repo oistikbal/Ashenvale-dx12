@@ -1,5 +1,4 @@
 #include "shader.h"
-#include "renderer/core/device.h"
 #include "shader_compiler.h"
 
 using namespace winrt;

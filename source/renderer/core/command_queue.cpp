@@ -1,5 +1,5 @@
 #include "command_queue.h"
-#include "renderer/core/device.h"
+#include <renderer/renderer.h>
 
 namespace
 {
@@ -11,7 +11,7 @@ void create(D3D12_COMMAND_LIST_TYPE type, D3D12_COMMAND_QUEUE_PRIORITY priority,
     qDesc.Type = type;
     qDesc.Priority = priority;
 
-    ash::rhi_dev_g_device->CreateCommandQueue(&qDesc, IID_PPV_ARGS(queue));
+    ash::rhi_g_device->CreateCommandQueue(&qDesc, IID_PPV_ARGS(queue));
 
     assert(*queue);
 }
@@ -27,9 +27,9 @@ void ash::rhi_cmd_init()
     SET_OBJECT_NAME(rhi_cmd_g_compute.get(), L"Compute Queue")
     SET_OBJECT_NAME(rhi_cmd_g_copy.get(), L"Copy Queue")
 
-    rhi_dev_g_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+    rhi_g_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
                                              IID_PPV_ARGS(rhi_cmd_g_command_allocator.put()));
-    rhi_dev_g_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, rhi_cmd_g_command_allocator.get(), nullptr,
+    rhi_g_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, rhi_cmd_g_command_allocator.get(), nullptr,
                                         IID_PPV_ARGS(rhi_cmd_g_command_list.put()));
 
     SET_OBJECT_NAME(rhi_cmd_g_command_list.get(), L"Triangle Command List");

@@ -1,7 +1,6 @@
 #include "viewport.h"
 #include "IconsMaterialDesign.h"
 #include "editor.h"
-#include "renderer/core/device.h"
 #include "renderer/renderer.h"
 #include <imgui/imgui.h>
 
@@ -41,7 +40,7 @@ void ash::ed_vp_render()
         }
 
         auto handle_size =
-            ash::rhi_dev_g_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+            ash::rhi_g_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
         D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle = ash::rhi_g_cbv_srv_uav_heap->GetGPUDescriptorHandleForHeapStart();
         gpu_handle.ptr += 1 * handle_size;

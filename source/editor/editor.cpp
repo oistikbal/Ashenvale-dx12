@@ -3,7 +3,6 @@
 #include "common.h"
 #include "configs/config.h"
 #include "renderer/core/command_queue.h"
-#include "renderer/core/device.h"
 #include "renderer/core/swapchain.h"
 #include "renderer/renderer.h"
 #include "viewport.h"
@@ -39,7 +38,7 @@ void ash::ed_init()
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
     ImGui_ImplDX12_InitInfo init_info = {};
-    init_info.Device = rhi_dev_g_device.get();
+    init_info.Device = rhi_g_device.get();
     init_info.CommandQueue = rhi_cmd_g_direct.get();
     init_info.NumFramesInFlight = 1;
     init_info.RTVFormat = rhi_sw_g_format;

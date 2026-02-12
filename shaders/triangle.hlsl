@@ -6,6 +6,11 @@ struct VSOutput
     float2 uv : TEXCOORD2;
 };
 
+struct CameraBuffer
+{
+    float4x4 mvp;
+};
+
 [RootSignature(RS)]
 VSOutput vs_main(uint vertexId : SV_VertexID)
 {
@@ -23,8 +28,10 @@ VSOutput vs_main(uint vertexId : SV_VertexID)
         float2(-0.5f, -0.5f)
     };
 
+    ConstantBuffer<CameraBuffer> cb = ResourceDescriptorHeap[2];
+    
     VSOutput output;
-    output.position = float4(positions[vertexId], 0.0f, 1.0f);
+    output.position = mul(cb.mvp, float4(positions[vertexId], 0.0f, 1.0f));
     output.uv = uv[vertexId];
     return output;
 }

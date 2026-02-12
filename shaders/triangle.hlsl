@@ -1,4 +1,5 @@
-﻿#define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | SAMPLER_HEAP_DIRECTLY_INDEXED | CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED )"
+﻿#define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | SAMPLER_HEAP_DIRECTLY_INDEXED | CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED ), " \
+            "RootConstants(num32BitConstants=16, b0)"
 
 struct VSOutput
 {
@@ -10,6 +11,8 @@ struct CameraBuffer
 {
     float4x4 mvp;
 };
+
+ConstantBuffer<CameraBuffer> cb : register(b0);
 
 [RootSignature(RS)]
 VSOutput vs_main(uint vertexId : SV_VertexID)
@@ -27,8 +30,6 @@ VSOutput vs_main(uint vertexId : SV_VertexID)
         float2(0.5f, -0.5f),
         float2(-0.5f, -0.5f)
     };
-
-    ConstantBuffer<CameraBuffer> cb = ResourceDescriptorHeap[2];
     
     VSOutput output;
     output.position = mul(cb.mvp, float4(positions[vertexId], 0.0f, 1.0f));

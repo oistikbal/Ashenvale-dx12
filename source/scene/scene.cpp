@@ -10,63 +10,17 @@
 using namespace winrt;
 using namespace DirectX;
 
-namespace
-{
-inline com_ptr<ID3D12Resource> camera_cb;
-}
 
 void ash::scene_render()
 {
     {
-        struct alignas(256) camera_constant_buffer
-        {
-            DirectX::XMFLOAT4X4 view_proj;
-        };
-
-        if (camera_cb == nullptr)
-        {
-            D3D12_RESOURCE_DESC desc = {};
-            desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-            desc.Alignment = 0;
-            desc.Width = sizeof(camera_constant_buffer);
-            desc.Height = 1;
-            desc.DepthOrArraySize = 1;
-            desc.MipLevels = 1;
-            desc.Format = DXGI_FORMAT_UNKNOWN;
-            desc.SampleDesc.Count = 1;
-            desc.SampleDesc.Quality = 0;
-            desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-            desc.Flags = D3D12_RESOURCE_FLAG_NONE;
-
-            D3D12_HEAP_PROPERTIES heap_properties = {};
-            heap_properties.Type = D3D12_HEAP_TYPE_UPLOAD;
-
-            rhi_g_device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &desc,
-                                                  D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
-                                                  IID_PPV_ARGS(camera_cb.put()));
-
-            D3D12_CONSTANT_BUFFER_VIEW_DESC cbv_desc = {};
-            cbv_desc.BufferLocation = camera_cb.get()->GetGPUVirtualAddress();
-            cbv_desc.SizeInBytes = sizeof(camera_constant_buffer);
-
-            UINT cbv_descriptor_size = rhi_g_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-            D3D12_CPU_DESCRIPTOR_HANDLE cbv_handle = rhi_g_cbv_srv_uav_heap->GetCPUDescriptorHandleForHeapStart();
-            cbv_handle.ptr += cbv_descriptor_size * 2;
-
-            rhi_g_device->CreateConstantBufferView(&cbv_desc, cbv_handle);
-
-            g_camera.position = DirectX::XMFLOAT3(0, 0, -1.0f);
-        }
+        g_camera.position = DirectX::XMFLOAT3(0, 0, -1.0f);
 
         cam_update_view_mat(g_camera);
         cam_update_proj_mat(g_camera, XM_PIDIV2, rhi_sw_g_viewport.Width / rhi_sw_g_viewport.Height, 0.1f, 1000.0f);
 
-        camera_constant_buffer ccb = {};
-        DirectX::XMStoreFloat4x4(&ccb.view_proj, cam_get_view_proj_mat(g_camera));
-
-        void *mapped_data = nullptr;
-        camera_cb->Map(0, nullptr, &mapped_data);
-        memcpy(mapped_data, &ccb, sizeof(ccb));
+        XMFLOAT4X4 view_proj = {};
+        DirectX::XMStoreFloat4x4(&view_proj, cam_get_view_proj_mat(g_camera));
 
         auto &command_list = rhi_cmd_g_command_list;
 
@@ -99,6 +53,7 @@ void ash::scene_render()
         D3D12_RECT scissorRect = {0, 0, rhi_g_viewport.Width, rhi_g_viewport.Height};
         command_list->RSSetScissorRects(1, &scissorRect);
         command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        command_list->SetGraphicsRoot32BitConstants(0, 16, &view_proj, 0);
         command_list->DrawInstanced(3, 1, 0, 0);
 
         barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;

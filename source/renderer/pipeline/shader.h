@@ -1,11 +1,11 @@
-﻿#pragma once
+#pragma once
 
 #include "common.h"
 #include <dxcapi.h>
 
-namespace ash::renderer::pipeline::shader
+namespace ash
 {
-struct resource_binding
+struct rhi_sh_resource_binding
 {
     std::string name;
     D3D_SHADER_INPUT_TYPE type;
@@ -13,19 +13,21 @@ struct resource_binding
     uint32_t bind_index;
 };
 
-struct shader
+struct rhi_sh_shader
 {
     winrt::com_ptr<IDxcBlob> blob;
     winrt::com_ptr<IDxcBlob> root_blob;
     std::vector<D3D12_INPUT_ELEMENT_DESC> input_layout;
-    std::vector<resource_binding> bindings;
+    std::vector<rhi_sh_resource_binding> bindings;
 };
 
-inline shader g_triangle_vs;
-inline shader g_triangle_ps;
-} // namespace ash::renderer::pipeline::shader
+inline rhi_sh_shader rhi_sh_g_triangle_vs;
+inline rhi_sh_shader rhi_sh_g_triangle_ps;
+} // namespace ash
 
-namespace ash::renderer::pipeline::shader
+namespace ash
 {
-void init();
+void rhi_sh_init();
 }
+
+

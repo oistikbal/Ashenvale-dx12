@@ -5,13 +5,13 @@
 #include "renderer/core/command_queue.h"
 #include "renderer/core/device.h"
 #include "renderer/core/swapchain.h"
+#include "renderer/renderer.h"
 #include "viewport.h"
 #include "window/window.h"
 #include <filesystem>
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_dx12.h>
 #include <imgui/imgui_impl_win32.h>
-#include "renderer/renderer.h"
 
 using namespace winrt;
 
@@ -19,17 +19,17 @@ namespace
 {
 void load_default_ini()
 {
-    SCOPED_CPU_EVENT(L"ash::editor::load_default_ini")
+    SCOPED_CPU_EVENT(L"ash::ed_load_default_ini")
 
-    std::string full_path = (std::filesystem::path(ash::config::RESOURCES_PATH) / "imgui.ini").string();
+    std::string full_path = (std::filesystem::path(ash::cfg_RESOURCES_PATH) / "imgui.ini").string();
     ImGui::LoadIniSettingsFromDisk(full_path.c_str());
 }
 } // namespace
 
-void ash::editor::init()
+void ash::ed_init()
 {
-    D3D12_CPU_DESCRIPTOR_HANDLE cpu = renderer::g_cbv_srv_uav_heap->GetCPUDescriptorHandleForHeapStart();
-    D3D12_GPU_DESCRIPTOR_HANDLE gpu = renderer::g_cbv_srv_uav_heap->GetGPUDescriptorHandleForHeapStart();
+    D3D12_CPU_DESCRIPTOR_HANDLE cpu = rhi_g_cbv_srv_uav_heap->GetCPUDescriptorHandleForHeapStart();
+    D3D12_GPU_DESCRIPTOR_HANDLE gpu = rhi_g_cbv_srv_uav_heap->GetGPUDescriptorHandleForHeapStart();
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -39,31 +39,31 @@ void ash::editor::init()
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
     ImGui_ImplDX12_InitInfo init_info = {};
-    init_info.Device = renderer::core::g_device.get();
-    init_info.CommandQueue = renderer::core::command_queue::g_direct.get();
+    init_info.Device = rhi_dev_g_device.get();
+    init_info.CommandQueue = rhi_cmd_g_direct.get();
     init_info.NumFramesInFlight = 1;
-    init_info.RTVFormat = renderer::core::swapchain::g_format;
+    init_info.RTVFormat = rhi_sw_g_format;
 
-    init_info.SrvDescriptorHeap = renderer::g_cbv_srv_uav_heap.get();
+    init_info.SrvDescriptorHeap = rhi_g_cbv_srv_uav_heap.get();
     init_info.SrvDescriptorAllocFn = nullptr;
     init_info.SrvDescriptorFreeFn = nullptr;
     init_info.LegacySingleSrvCpuDescriptor = cpu;
     init_info.LegacySingleSrvGpuDescriptor = gpu;
 
-    ImGui_ImplWin32_Init(window::g_hwnd);
+    ImGui_ImplWin32_Init(win_g_hwnd);
     ImGui_ImplDX12_Init(&init_info);
 
     ImFontConfig config{};
     config.MergeMode = false;
 
-    std::string full_path = (std::filesystem::path(config::RESOURCES_PATH) / "Roboto-Regular.ttf").string();
+    std::string full_path = (std::filesystem::path(cfg_RESOURCES_PATH) / "Roboto-Regular.ttf").string();
     io.Fonts->AddFontFromFileTTF((full_path.c_str()), 14.0f, &config);
 
     static const ImWchar icon_ranges[] = {ICON_MIN_MD, ICON_MAX_16_MD, 0};
     config.MergeMode = true;
     config.GlyphOffset.y = 6;
 
-    full_path = (std::filesystem::path(config::RESOURCES_PATH) / "MaterialIcons-Regular.ttf").string();
+    full_path = (std::filesystem::path(cfg_RESOURCES_PATH) / "MaterialIcons-Regular.ttf").string();
     io.Fonts->AddFontFromFileTTF((full_path.c_str()), 20.0f, &config, icon_ranges);
 
     ImGuiStyle &style = ImGui::GetStyle();
@@ -151,7 +151,7 @@ void ash::editor::init()
 
     style.DockingSeparatorSize = 1.0f;
 
-    viewport::init();
+    ed_vp_init();
 
     if (!std::filesystem::exists("imgui.ini"))
     {
@@ -159,9 +159,9 @@ void ash::editor::init()
     }
 }
 
-void ash::editor::render()
+void ash::ed_render()
 {
-    SCOPED_CPU_EVENT(L"ash::editor::render")
+    SCOPED_CPU_EVENT(L"ash::ed_render")
 
     ImGui_ImplDX12_NewFrame();
     ImGui_ImplWin32_NewFrame();
@@ -177,7 +177,7 @@ void ash::editor::render()
         if (ImGui::BeginMenu("Windows"))
         {
             if (ImGui::MenuItem("Viewport"))
-                editor::viewport::g_is_open = true;
+                ed_vp_g_is_open = true;
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Layout"))
@@ -194,13 +194,13 @@ void ash::editor::render()
 
     ImGui::DockSpaceOverViewport(ImGui::GetMainViewport()->ID);
 
-    editor::viewport::render();
+    ed_vp_render();
 
     ImGui::Render();
 }
 
-void ash::editor::render_backend()
+void ash::ed_render_backend()
 {
-    SCOPED_CPU_EVENT(L"ash::editor::render_backend")
-    ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), renderer::core::command_queue::g_command_list.get());
+    SCOPED_CPU_EVENT(L"ash::ed_render_backend")
+    ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), rhi_cmd_g_command_list.get());
 }

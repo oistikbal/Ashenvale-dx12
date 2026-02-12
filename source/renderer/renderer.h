@@ -1,29 +1,29 @@
-﻿#pragma once
+#pragma once
 
 #include "common.h"
 #include <thread>
 
 using namespace winrt;
 
-namespace ash::renderer
+namespace ash
 {
-inline std::thread g_renderer_thread;
-inline std::atomic<bool> g_running = true;
+inline std::thread rhi_g_renderer_thread;
+inline std::atomic<bool> rhi_g_running = true;
 
-inline winrt::com_ptr<ID3D12DescriptorHeap> g_cbv_srv_uav_heap;
-inline winrt::com_ptr<ID3D12DescriptorHeap> g_sampler_heap;
-inline winrt::com_ptr<ID3D12DescriptorHeap> g_viewport_rtv_heap;
-inline winrt::com_ptr<ID3D12DescriptorHeap> g_rtv_heap;
-inline winrt::com_ptr<ID3D12Resource> g_viewport_texture;
+inline winrt::com_ptr<ID3D12DescriptorHeap> rhi_g_cbv_srv_uav_heap;
+inline winrt::com_ptr<ID3D12DescriptorHeap> rhi_g_sampler_heap;
+inline winrt::com_ptr<ID3D12DescriptorHeap> rhi_g_viewport_rtv_heap;
+inline winrt::com_ptr<ID3D12DescriptorHeap> rhi_g_rtv_heap;
+inline winrt::com_ptr<ID3D12Resource> rhi_g_viewport_texture;
 
-inline D3D12_VIEWPORT g_viewport;
-inline DXGI_FORMAT g_format;
-} // namespace ash::renderer
+inline D3D12_VIEWPORT rhi_g_viewport;
+inline DXGI_FORMAT rhi_g_format;
+} // namespace ash
 
-namespace ash::renderer
+namespace ash
 {
-void init();
-void render();
-void stop();
-void resize(D3D12_VIEWPORT viewport);
-} // namespace ash::renderer
+void rhi_init();
+void rhi_render();
+void rhi_stop();
+void rhi_resize(D3D12_VIEWPORT viewport);
+} // namespace ash

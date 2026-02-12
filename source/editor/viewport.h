@@ -1,12 +1,12 @@
 #pragma once
 
-namespace ash::editor::viewport
+namespace ash
 {
-inline bool g_is_open = true;
+inline bool ed_vp_g_is_open = true;
 }
 
-namespace ash::editor::viewport
+namespace ash
 {
-void init();
-void render();
-} // namespace ash::editor::viewport
+void ed_vp_init();
+void ed_vp_render();
+} // namespace ash

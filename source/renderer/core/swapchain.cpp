@@ -1,18 +1,18 @@
-﻿#include "swapchain.h"
+#include "swapchain.h"
 #include "renderer/core/command_queue.h"
 #include "renderer/core/device.h"
 #include "window/window.h"
 
 using namespace winrt;
 
-void ash::renderer::core::swapchain::init(DXGI_FORMAT format)
+void ash::rhi_sw_init(DXGI_FORMAT format)
 {
-    SCOPED_CPU_EVENT(L"ash::renderer::core::swapchain::init")
-    assert(core::command_queue::g_direct.get());
-    g_format = format;
+    SCOPED_CPU_EVENT(L"ash::rhi_sw_init")
+    assert(rhi_cmd_g_direct.get());
+    rhi_sw_g_format = format;
 
     RECT clientRect;
-    GetClientRect(window::g_hwnd, &clientRect);
+    GetClientRect(win_g_hwnd, &clientRect);
 
     int renderWidth = clientRect.right - clientRect.left;
     int renderHeight = clientRect.bottom - clientRect.top;
@@ -21,7 +21,7 @@ void ash::renderer::core::swapchain::init(DXGI_FORMAT format)
     swapChainDesc.BufferCount = 2;
     swapChainDesc.Width = renderWidth;
     swapChainDesc.Height = renderHeight;
-    swapChainDesc.Format = g_format;
+    swapChainDesc.Format = rhi_sw_g_format;
     swapChainDesc.SampleDesc.Count = 1;
     swapChainDesc.SampleDesc.Quality = 0;
     swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
@@ -32,42 +32,40 @@ void ash::renderer::core::swapchain::init(DXGI_FORMAT format)
     CreateDXGIFactory2(0, IID_PPV_ARGS(&factory));
 
     com_ptr<IDXGISwapChain1> temp_swapchain;
-    factory->CreateSwapChainForHwnd(core::command_queue::g_direct.get(), window::g_hwnd, &swapChainDesc, nullptr,
-                                    nullptr, temp_swapchain.put());
+    factory->CreateSwapChainForHwnd(rhi_cmd_g_direct.get(), win_g_hwnd, &swapChainDesc, nullptr, nullptr,
+                                    temp_swapchain.put());
 
-    factory->MakeWindowAssociation(window::g_hwnd, DXGI_MWA_NO_ALT_ENTER);
+    factory->MakeWindowAssociation(win_g_hwnd, DXGI_MWA_NO_ALT_ENTER);
 
-    temp_swapchain.as(g_swapchain);
+    temp_swapchain.as(rhi_sw_g_swapchain);
 
     D3D12_DESCRIPTOR_HEAP_DESC rtv_heap_desc = {};
     rtv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
     rtv_heap_desc.NumDescriptors = 2;
     rtv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-    core::g_device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(g_swapchain_rtv_heap.put()));
-    SET_OBJECT_NAME(g_swapchain_rtv_heap, L"Rtv Heap")
-
+    rhi_dev_g_device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(rhi_sw_g_swapchain_rtv_heap.put()));
+    SET_OBJECT_NAME(rhi_sw_g_swapchain_rtv_heap, L"Rtv Heap")
 
     D3D12_DESCRIPTOR_HEAP_DESC dsv_heap_desc = {};
     dsv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
     dsv_heap_desc.NumDescriptors = 1;
     dsv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-    core::g_device->CreateDescriptorHeap(&dsv_heap_desc, IID_PPV_ARGS(g_swapchain_dsv_heap.put()));
-    SET_OBJECT_NAME(g_swapchain_dsv_heap, L"Dsv Heap")
+    rhi_dev_g_device->CreateDescriptorHeap(&dsv_heap_desc, IID_PPV_ARGS(rhi_sw_g_swapchain_dsv_heap.put()));
+    SET_OBJECT_NAME(rhi_sw_g_swapchain_dsv_heap, L"Dsv Heap")
 
-
-    resize();
-    g_fence_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-    core::g_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(g_fence.put()));
-    SET_OBJECT_NAME(g_fence.get(), L"Swapchain Fence")
+    rhi_sw_resize();
+    rhi_sw_g_fence_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+    rhi_dev_g_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(rhi_sw_g_fence.put()));
+    SET_OBJECT_NAME(rhi_sw_g_fence.get(), L"Swapchain Fence")
 }
 
-void ash::renderer::core::swapchain::resize()
+void ash::rhi_sw_resize()
 {
-    SCOPED_CPU_EVENT(L"ash::renderer::core::swapchain::resize")
-    assert(g_swapchain.get());
+    SCOPED_CPU_EVENT(L"ash::rhi_sw_resize")
+    assert(rhi_sw_g_swapchain.get());
 
     RECT clientRect;
-    GetClientRect(window::g_hwnd, &clientRect);
+    GetClientRect(win_g_hwnd, &clientRect);
 
     int renderWidth = clientRect.right - clientRect.left;
     int renderHeight = clientRect.bottom - clientRect.top;
@@ -77,28 +75,28 @@ void ash::renderer::core::swapchain::resize()
 
     for (UINT i = 0; i < 2; ++i)
     {
-        g_render_targets[i] = nullptr;
+        rhi_sw_g_render_targets[i] = nullptr;
     }
 
-    g_swapchain->ResizeBuffers(2, renderWidth, renderHeight, g_format, 0);
+    rhi_sw_g_swapchain->ResizeBuffers(2, renderWidth, renderHeight, rhi_sw_g_format, 0);
 
-    g_viewport = {};
-    g_viewport.Width = static_cast<float>(renderWidth);
-    g_viewport.Height = static_cast<float>(renderHeight);
-    g_viewport.MinDepth = 0.0f;
-    g_viewport.MaxDepth = 1.0f;
-    g_viewport.TopLeftX = 0.0f;
-    g_viewport.TopLeftY = 0.0f;
+    rhi_sw_g_viewport = {};
+    rhi_sw_g_viewport.Width = static_cast<float>(renderWidth);
+    rhi_sw_g_viewport.Height = static_cast<float>(renderHeight);
+    rhi_sw_g_viewport.MinDepth = 0.0f;
+    rhi_sw_g_viewport.MaxDepth = 1.0f;
+    rhi_sw_g_viewport.TopLeftX = 0.0f;
+    rhi_sw_g_viewport.TopLeftY = 0.0f;
 
-    UINT backBufferIndex = g_swapchain->GetCurrentBackBufferIndex();
+    UINT backBufferIndex = rhi_sw_g_swapchain->GetCurrentBackBufferIndex();
 
-    UINT rtvDescriptorSize = core::g_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-    D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = g_swapchain_rtv_heap->GetCPUDescriptorHandleForHeapStart();
+    UINT rtvDescriptorSize = rhi_dev_g_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = rhi_sw_g_swapchain_rtv_heap->GetCPUDescriptorHandleForHeapStart();
 
     for (UINT i = 0; i < 2; ++i)
     {
-        g_swapchain->GetBuffer(i, IID_PPV_ARGS(g_render_targets[i].put()));
-        core::g_device->CreateRenderTargetView(g_render_targets[i].get(), nullptr, rtvHandle);
+        rhi_sw_g_swapchain->GetBuffer(i, IID_PPV_ARGS(rhi_sw_g_render_targets[i].put()));
+        rhi_dev_g_device->CreateRenderTargetView(rhi_sw_g_render_targets[i].get(), nullptr, rtvHandle);
         rtvHandle.ptr += rtvDescriptorSize;
     }
 
@@ -123,17 +121,17 @@ void ash::renderer::core::swapchain::resize()
     D3D12_HEAP_PROPERTIES heap_props = {};
     heap_props.Type = D3D12_HEAP_TYPE_DEFAULT;
 
-    core::g_device->CreateCommittedResource(&heap_props, D3D12_HEAP_FLAG_NONE,
-                                            &depth_desc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &depth_optimized_clear_value,
-                                            IID_PPV_ARGS(g_dsv_buffer.put()));
+    rhi_dev_g_device->CreateCommittedResource(&heap_props, D3D12_HEAP_FLAG_NONE, &depth_desc,
+                                              D3D12_RESOURCE_STATE_DEPTH_WRITE, &depth_optimized_clear_value,
+                                              IID_PPV_ARGS(rhi_sw_g_dsv_buffer.put()));
 
-    SET_OBJECT_NAME(g_dsv_buffer.get(), L"Dsv Buffer");
+    SET_OBJECT_NAME(rhi_sw_g_dsv_buffer.get(), L"Dsv Buffer");
 
     D3D12_DEPTH_STENCIL_VIEW_DESC dsv_view_desc = {};
     dsv_view_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
     dsv_view_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
     dsv_view_desc.Flags = D3D12_DSV_FLAG_NONE;
 
-    core::g_device->CreateDepthStencilView(g_dsv_buffer.get(), &dsv_view_desc,
-                                           g_swapchain_dsv_heap->GetCPUDescriptorHandleForHeapStart());
+    rhi_dev_g_device->CreateDepthStencilView(rhi_sw_g_dsv_buffer.get(), &dsv_view_desc,
+                                             rhi_sw_g_swapchain_dsv_heap->GetCPUDescriptorHandleForHeapStart());
 }

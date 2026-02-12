@@ -1,21 +1,21 @@
-﻿#pragma once
+#pragma once
 
 #include "common.h"
 #include "shader.h"
 #include <d3d12shader.h>
 #include <dxcapi.h>
 
-namespace ash::renderer::pipeline::shader_compiler
+namespace ash
 {
-inline winrt::com_ptr<IDxcCompiler3> g_compiler;
-inline winrt::com_ptr<IDxcUtils> g_utils;
-} // namespace ash::renderer::pipeline::shader_compiler
+inline winrt::com_ptr<IDxcCompiler3> rhi_sc_g_compiler;
+inline winrt::com_ptr<IDxcUtils> rhi_sc_g_utils;
+} // namespace ash
 
-namespace ash::renderer::pipeline::shader_compiler
+namespace ash
 {
-void init();
-HRESULT compile(const wchar_t *file, const wchar_t *entryPoint, const wchar_t *target, IDxcResult **result,
-                IDxcBlobUtf8 **error_blob);
-std::vector<D3D12_INPUT_ELEMENT_DESC> get_input_layout(ID3D12ShaderReflection *reflection);
-std::vector<shader::resource_binding> get_bindings(ID3D12ShaderReflection *reflection);
-} // namespace ash::renderer::pipeline::shader_compiler
+void rhi_sc_init();
+HRESULT rhi_sc_compile(const wchar_t *file, const wchar_t *entryPoint, const wchar_t *target, IDxcResult **result,
+                       IDxcBlobUtf8 **error_blob);
+std::vector<D3D12_INPUT_ELEMENT_DESC> rhi_sc_get_input_layout(ID3D12ShaderReflection *reflection);
+std::vector<rhi_sh_resource_binding> rhi_sc_get_bindings(ID3D12ShaderReflection *reflection);
+} // namespace ash

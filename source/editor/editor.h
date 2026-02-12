@@ -3,13 +3,13 @@
 #include "common.h"
 #include <winrt/base.h>
 
-namespace ash::editor
+namespace ash
 {
 }
 
-namespace ash::editor
+namespace ash
 {
-void init();
-void render();
-void render_backend();
-} // namespace ash::editor
+void ed_init();
+void ed_render();
+void ed_render_backend();
+} // namespace ash

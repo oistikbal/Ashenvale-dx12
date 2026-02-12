@@ -1,4 +1,4 @@
-﻿#include "window/window.h"
+#include "window/window.h"
 #include <filesystem>
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
@@ -14,8 +14,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     CoInitializeEx(NULL, COINIT_MULTITHREADED);
 
-    ash::window::init(hInstance, pCmdLine, nCmdShow);
-    ash::window::run();
+    ash::win_init(hInstance, pCmdLine, nCmdShow);
+    ash::win_run();
 
     return 0;
 }

@@ -32,7 +32,7 @@ VSOutput vs_main(uint vertexId : SV_VertexID)
 float4 ps_main(VSOutput input) : SV_Target
 {
     
-    Texture2D<float4> tex = ResourceDescriptorHeap[0]; 
+    Texture2D<float4> tex = ResourceDescriptorHeap[0];
     SamplerState samp = SamplerDescriptorHeap[0];
     return tex.Sample(samp, input.uv);
 }

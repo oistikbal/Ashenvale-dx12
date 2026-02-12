@@ -1,16 +1,16 @@
-﻿#pragma once
+#pragma once
 
 #include "common.h"
 #include "event.h"
 
-namespace ash::window
+namespace ash
 {
-inline HWND g_hwnd = nullptr;
-inline event::event_queue g_queue;
-} // namespace ash::window
+inline HWND win_g_hwnd = nullptr;
+inline win_evt_event_queue win_g_queue;
+} // namespace ash
 
-namespace ash::window
+namespace ash
 {
-void init(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow);
-void run();
-} // namespace ash::window
+void win_init(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow);
+void win_run();
+} // namespace ash

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * ----------------------------------------------------------------------------
  * THIS FILE IS AUTO-GENERATED – DO NOT EDIT MANUALLY
  * Generated from: config.h.in
@@ -8,8 +8,9 @@
 
 #pragma once
 
-namespace ash::config
+namespace ash
 {
-constexpr const wchar_t *SHADER_PATH = L"shaders\\";
-constexpr const wchar_t *RESOURCES_PATH = L"resources\\";
-} // namespace ash::config
+constexpr const wchar_t *cfg_SHADER_PATH = L"shaders\\";
+constexpr const wchar_t *cfg_RESOURCES_PATH = L"resources\\";
+} // namespace ash
+

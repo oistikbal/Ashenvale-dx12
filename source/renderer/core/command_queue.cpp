@@ -1,4 +1,4 @@
-﻿#include "command_queue.h"
+#include "command_queue.h"
 #include "renderer/core/device.h"
 
 namespace
@@ -11,25 +11,26 @@ void create(D3D12_COMMAND_LIST_TYPE type, D3D12_COMMAND_QUEUE_PRIORITY priority,
     qDesc.Type = type;
     qDesc.Priority = priority;
 
-    ash::renderer::core::g_device->CreateCommandQueue(&qDesc, IID_PPV_ARGS(queue));
+    ash::rhi_dev_g_device->CreateCommandQueue(&qDesc, IID_PPV_ARGS(queue));
 
     assert(*queue);
 }
 } // namespace
 
-void ash::renderer::core::command_queue::init()
+void ash::rhi_cmd_init()
 {
-    create(D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_QUEUE_PRIORITY_NORMAL, g_direct.put());
-    create(D3D12_COMMAND_LIST_TYPE_COMPUTE, D3D12_COMMAND_QUEUE_PRIORITY_NORMAL, g_compute.put());
-    create(D3D12_COMMAND_LIST_TYPE_COPY, D3D12_COMMAND_QUEUE_PRIORITY_NORMAL, g_copy.put());
+    create(D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_QUEUE_PRIORITY_NORMAL, rhi_cmd_g_direct.put());
+    create(D3D12_COMMAND_LIST_TYPE_COMPUTE, D3D12_COMMAND_QUEUE_PRIORITY_NORMAL, rhi_cmd_g_compute.put());
+    create(D3D12_COMMAND_LIST_TYPE_COPY, D3D12_COMMAND_QUEUE_PRIORITY_NORMAL, rhi_cmd_g_copy.put());
 
-    SET_OBJECT_NAME(g_direct.get(), L"Direct Queue")
-    SET_OBJECT_NAME(g_compute.get(), L"Compute Queue")
-    SET_OBJECT_NAME(g_copy.get(), L"Copy Queue")
+    SET_OBJECT_NAME(rhi_cmd_g_direct.get(), L"Direct Queue")
+    SET_OBJECT_NAME(rhi_cmd_g_compute.get(), L"Compute Queue")
+    SET_OBJECT_NAME(rhi_cmd_g_copy.get(), L"Copy Queue")
 
-    core::g_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(g_command_allocator.put()));
-    core::g_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, g_command_allocator.get(), nullptr,
-                                      IID_PPV_ARGS(g_command_list.put()));
+    rhi_dev_g_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+                                             IID_PPV_ARGS(rhi_cmd_g_command_allocator.put()));
+    rhi_dev_g_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, rhi_cmd_g_command_allocator.get(), nullptr,
+                                        IID_PPV_ARGS(rhi_cmd_g_command_list.put()));
 
-    SET_OBJECT_NAME(g_command_list.get(), L"Triangle Command List");
+    SET_OBJECT_NAME(rhi_cmd_g_command_list.get(), L"Triangle Command List");
 }

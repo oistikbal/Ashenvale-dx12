@@ -1,4 +1,4 @@
-﻿#include "window/window.h"
+#include "window/window.h"
 #include "editor/editor.h"
 #include "renderer/core/swapchain.h"
 #include "renderer/renderer.h"
@@ -6,9 +6,9 @@
 
 static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-void ash::window::init(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
+void ash::win_init(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
 {
-    SCOPED_CPU_EVENT(L"ash::window::init");
+    SCOPED_CPU_EVENT(L"ash::win_init");
     WNDCLASS wc = {};
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = GetModuleHandle(nullptr);
@@ -20,24 +20,24 @@ void ash::window::init(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
     int screenWidth = GetSystemMetrics(SM_CXSCREEN);
     int screenHeight = GetSystemMetrics(SM_CYSCREEN);
 
-    g_hwnd = CreateWindowEx(0, wc.lpszClassName, "Ashenvale", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
-                            screenWidth, screenHeight, nullptr, nullptr, wc.hInstance, nullptr);
+    win_g_hwnd = CreateWindowEx(0, wc.lpszClassName, "Ashenvale", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
+                                screenWidth, screenHeight, nullptr, nullptr, wc.hInstance, nullptr);
 
-    assert(g_hwnd);
+    assert(win_g_hwnd);
 
-    ShowWindow(g_hwnd, SW_SHOWMAXIMIZED);
-    UpdateWindow(g_hwnd);
-    renderer::init();
-    editor::init();
+    ShowWindow(win_g_hwnd, SW_SHOWMAXIMIZED);
+    UpdateWindow(win_g_hwnd);
+    rhi_init();
+    ed_init();
 }
 
-void ash::window::run()
+void ash::win_run()
 {
     MSG msg = {};
 
     while (GetMessage(&msg, nullptr, 0, 0))
     {
-        SCOPED_CPU_EVENT(L"ash::window::run");
+        SCOPED_CPU_EVENT(L"ash::win_run");
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
@@ -66,11 +66,11 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
         break;
 
     case WM_DESTROY:
-        ash::renderer::stop();
+        ash::rhi_stop();
         PostQuitMessage(0);
         return 0;
     case WM_SIZE:
-        ash::window::event::push(ash::window::g_queue, {ash::window::event::windows_event::resize});
+        ash::win_evt_push(ash::win_g_queue, {ash::win_evt_windows_event::resize});
         return 0;
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);

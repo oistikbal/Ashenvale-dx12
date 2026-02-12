@@ -1,9 +1,9 @@
-﻿#pragma once
+#pragma once
 
 #include "common.h"
 
-namespace ash::renderer::core
+namespace ash
 {
-inline winrt::com_ptr<ID3D12Device> g_device;
-inline winrt::com_ptr<IDXGIAdapter> g_adapter;
-}
+inline winrt::com_ptr<ID3D12Device> rhi_dev_g_device;
+inline winrt::com_ptr<IDXGIAdapter> rhi_dev_g_adapter;
+} // namespace ash

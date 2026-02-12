@@ -1,18 +1,18 @@
-﻿#pragma once
+#pragma once
 
 #include "common.h"
 
-namespace ash::renderer::core::command_queue
+namespace ash
 {
-inline winrt::com_ptr<ID3D12CommandQueue> g_direct = nullptr;
-inline winrt::com_ptr<ID3D12CommandQueue> g_compute = nullptr;
-inline winrt::com_ptr<ID3D12CommandQueue> g_copy = nullptr;
+inline winrt::com_ptr<ID3D12CommandQueue> rhi_cmd_g_direct = nullptr;
+inline winrt::com_ptr<ID3D12CommandQueue> rhi_cmd_g_compute = nullptr;
+inline winrt::com_ptr<ID3D12CommandQueue> rhi_cmd_g_copy = nullptr;
 
-inline winrt::com_ptr<ID3D12CommandAllocator> g_command_allocator;
-inline winrt::com_ptr<ID3D12GraphicsCommandList> g_command_list;
-} // namespace ash::renderer::core::command_queue
+inline winrt::com_ptr<ID3D12CommandAllocator> rhi_cmd_g_command_allocator;
+inline winrt::com_ptr<ID3D12GraphicsCommandList> rhi_cmd_g_command_list;
+} // namespace ash
 
-namespace ash::renderer::core::command_queue
+namespace ash
 {
-void init();
-} // namespace ash::renderer::core::swapchain
+void rhi_cmd_init();
+} // namespace ash

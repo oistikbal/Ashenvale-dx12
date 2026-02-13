@@ -2,8 +2,10 @@
 #include "configs/config.h"
 #include <d3d12shader.h>
 #include <dxcapi.h>
+#include <filesystem>
 #include <fstream>
 #include <vector>
+#include <windows.h>
 
 using namespace winrt;
 
@@ -14,12 +16,56 @@ std::vector<uint8_t> load_file(const wchar_t *file_name)
     std::ifstream file(file_name, std::ios::binary);
     return std::vector<uint8_t>(std::istreambuf_iterator<char>(file), {});
 }
+
+using DxcCreateInstanceProc = HRESULT(WINAPI *)(REFCLSID, REFIID, LPVOID *);
+
+HRESULT dxc_create_instance_from_exe_dir(REFCLSID clsid, REFIID iid, void **out)
+{
+    static HMODULE dxc_module = nullptr;
+    static DxcCreateInstanceProc dxc_create_instance = nullptr;
+
+    if (!dxc_module)
+    {
+        wchar_t exe_path_buf[MAX_PATH] = {};
+        GetModuleFileNameW(nullptr, exe_path_buf, MAX_PATH);
+        std::filesystem::path exe_path = exe_path_buf;
+        std::filesystem::path exe_dir = exe_path.parent_path();
+
+        std::filesystem::path dxc_path = exe_dir / L"dxcompiler.dll";
+        dxc_module = LoadLibraryW(dxc_path.c_str());
+
+        if (!dxc_module)
+        {
+            dxc_module = LoadLibraryW(L"dxcompiler.dll");
+        }
+
+        if (!dxc_module)
+        {
+            return HRESULT_FROM_WIN32(GetLastError());
+        }
+
+        std::filesystem::path dxil_path = exe_dir / L"dxil.dll";
+        if (!GetModuleHandleW(L"dxil.dll"))
+        {
+            LoadLibraryW(dxil_path.c_str());
+        }
+
+        dxc_create_instance =
+            reinterpret_cast<DxcCreateInstanceProc>(GetProcAddress(dxc_module, "DxcCreateInstance"));
+        if (!dxc_create_instance)
+        {
+            return HRESULT_FROM_WIN32(GetLastError());
+        }
+    }
+
+    return dxc_create_instance(clsid, iid, out);
+}
 } // namespace
 
 void ash::rhi_sc_init()
 {
-    DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(rhi_sc_g_compiler.put()));
-    DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(rhi_sc_g_utils.put()));
+    dxc_create_instance_from_exe_dir(CLSID_DxcCompiler, IID_PPV_ARGS(rhi_sc_g_compiler.put()));
+    dxc_create_instance_from_exe_dir(CLSID_DxcUtils, IID_PPV_ARGS(rhi_sc_g_utils.put()));
 
     assert(rhi_sc_g_compiler.get());
     assert(rhi_sc_g_utils.get());

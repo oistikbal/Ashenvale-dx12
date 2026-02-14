@@ -2,9 +2,68 @@
 #include "editor/editor.h"
 #include "renderer/core/swapchain.h"
 #include "renderer/renderer.h"
+#include "window/input.h"
 #include <imgui/imgui_impl_win32.h>
 
 static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+namespace
+{
+inline void input_winproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam, ash::win_input::input_state &input_state)
+{
+    switch (msg)
+    {
+    case WM_KEYDOWN:
+    case WM_SYSKEYDOWN:
+        if (wparam < 256)
+        {
+            input_state.keyboard[wparam] = true;
+        }
+        break;
+
+    case WM_KEYUP:
+    case WM_SYSKEYUP:
+        if (wparam < 256)
+        {
+            input_state.keyboard[wparam] = false;
+        }
+        break;
+
+    case WM_LBUTTONDOWN:
+        input_state.mouse_button[0] = true;
+        break;
+    case WM_LBUTTONUP:
+        input_state.mouse_button[0] = false;
+        break;
+
+    case WM_RBUTTONDOWN:
+        input_state.mouse_button[1] = true;
+        break;
+    case WM_RBUTTONUP:
+        input_state.mouse_button[1] = false;
+        break;
+
+    case WM_MBUTTONDOWN:
+        input_state.mouse_button[2] = true;
+        break;
+    case WM_MBUTTONUP:
+        input_state.mouse_button[2] = false;
+        break;
+
+    // This is probably doesn't work as intended.
+    case WM_MOUSEMOVE:
+        int new_x = LOWORD(lparam);
+        int new_y = HIWORD(lparam);
+
+        input_state.mouse_delta_pos[0] = new_x - input_state.mouse_pos[0];
+        input_state.mouse_delta_pos[1] = new_y - input_state.mouse_pos[1];
+
+        input_state.mouse_pos[0] = new_x;
+        input_state.mouse_pos[1] = new_y;
+        break;
+    }
+}
+} // namespace
 
 void ash::win_init(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
 {
@@ -49,6 +108,9 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
 {
     if (ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam))
         return true;
+
+    input_winproc(hwnd, uMsg, wParam, lParam, ash::win_input_get_back_buffer(ash::g_win_input));
+    ash::win_input_swap_buffers(ash::g_win_input);
 
     switch (uMsg)
     {

@@ -5,11 +5,23 @@
 
 using namespace winrt;
 
-void ash::rhi_sw_init(DXGI_FORMAT format)
+void ash::rhi_sw_init()
 {
     SCOPED_CPU_EVENT(L"ash::rhi_sw_init")
     assert(rhi_cmd_g_direct.get());
-    rhi_sw_g_format = format;
+
+    com_ptr<IDXGIOutput6> adapterOutput6;
+    ash::rhi_g_output.as(adapterOutput6);
+    assert(adapterOutput6.get());
+
+    DXGI_MODE_DESC1 targetMode = {};
+    targetMode.Format = DXGI_FORMAT_R10G10B10A2_UNORM;
+
+    DXGI_MODE_DESC1 closeMatch = {};
+
+    adapterOutput6->FindClosestMatchingMode1(&targetMode, &closeMatch, nullptr);
+
+    rhi_sw_g_format = closeMatch.Format;
 
     RECT clientRect;
     GetClientRect(win_g_hwnd, &clientRect);
@@ -122,8 +134,8 @@ void ash::rhi_sw_resize()
     heap_props.Type = D3D12_HEAP_TYPE_DEFAULT;
 
     rhi_g_device->CreateCommittedResource(&heap_props, D3D12_HEAP_FLAG_NONE, &depth_desc,
-                                              D3D12_RESOURCE_STATE_DEPTH_WRITE, &depth_optimized_clear_value,
-                                              IID_PPV_ARGS(rhi_sw_g_dsv_buffer.put()));
+                                          D3D12_RESOURCE_STATE_DEPTH_WRITE, &depth_optimized_clear_value,
+                                          IID_PPV_ARGS(rhi_sw_g_dsv_buffer.put()));
 
     SET_OBJECT_NAME(rhi_sw_g_dsv_buffer.get(), L"Dsv Buffer");
 
@@ -133,5 +145,5 @@ void ash::rhi_sw_resize()
     dsv_view_desc.Flags = D3D12_DSV_FLAG_NONE;
 
     rhi_g_device->CreateDepthStencilView(rhi_sw_g_dsv_buffer.get(), &dsv_view_desc,
-                                             rhi_sw_g_swapchain_dsv_heap->GetCPUDescriptorHandleForHeapStart());
+                                         rhi_sw_g_swapchain_dsv_heap->GetCPUDescriptorHandleForHeapStart());
 }

@@ -1,4 +1,5 @@
 #include "camera.h"
+#include "window/input.h"
 
 using namespace DirectX;
 
@@ -22,4 +23,46 @@ void ash::cam_update_proj_mat(camera &cam, float fov_y, float screen_aspect, flo
 DirectX::XMMATRIX ash::cam_get_view_proj_mat(camera &cam)
 {
     return (XMLoadFloat4x4(&cam.mat_view) * XMLoadFloat4x4(&cam.mat_proj));
+}
+
+void ash::cam_handle_input(camera &cam, float delta_time, const win_input::input_state &input_state)
+{
+    const float move_speed = 2.0f * delta_time;
+    const float mouse_sensitivity = 2.0f * delta_time;
+
+    if (input_state.mouse_button[1])
+    {
+        cam.rotation.y += input_state.mouse_delta_pos[0] * mouse_sensitivity;
+        cam.rotation.x += input_state.mouse_delta_pos[1] * mouse_sensitivity;
+    }
+
+    XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(cam.rotation.x, cam.rotation.y, cam.rotation.z);
+
+    XMVECTOR forward = XMVector3TransformNormal(XMVectorSet(0, 0, 1, 0), rotationMatrix);
+    XMVECTOR right = XMVector3TransformNormal(XMVectorSet(1, 0, 0, 0), rotationMatrix);
+
+    XMVECTOR position = XMLoadFloat3(&cam.position);
+
+    float moveForward = 0.0f;
+    float moveRight = 0.0f;
+
+    if (input_state.keyboard['W'])
+        moveForward += 1.0f;
+    if (input_state.keyboard['S'])
+        moveForward -= 1.0f;
+    if (input_state.keyboard['A'])
+        moveRight -= 1.0f;
+    if (input_state.keyboard['D'])
+        moveRight += 1.0f;
+
+    const float inputLengthSq = moveForward * moveForward + moveRight * moveRight;
+    if (inputLengthSq > 0.0f)
+    {
+        const float invLength = 1.0f / std::sqrt(inputLengthSq);
+        const float scaledMove = move_speed * invLength;
+        position = XMVectorAdd(position, XMVectorScale(forward, moveForward * scaledMove));
+        position = XMVectorAdd(position, XMVectorScale(right, moveRight * scaledMove));
+    }
+
+    XMStoreFloat3(&cam.position, position);
 }

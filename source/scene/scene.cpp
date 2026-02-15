@@ -10,14 +10,11 @@
 using namespace winrt;
 using namespace DirectX;
 
-
 void ash::scene_render()
 {
     {
-        g_camera.position = DirectX::XMFLOAT3(0, 0, -1.0f);
-
         cam_update_view_mat(g_camera);
-        cam_update_proj_mat(g_camera, XM_PIDIV2, rhi_sw_g_viewport.Width / rhi_sw_g_viewport.Height, 0.1f, 1000.0f);
+        cam_update_proj_mat(g_camera, XM_PI / 3, rhi_sw_g_viewport.Width / rhi_sw_g_viewport.Height, 0.1f, 1000.0f);
 
         XMFLOAT4X4 view_proj = {};
         DirectX::XMStoreFloat4x4(&view_proj, cam_get_view_proj_mat(g_camera));

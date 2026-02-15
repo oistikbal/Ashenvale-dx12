@@ -7,7 +7,9 @@
 #include "pipeline/shader_compiler.h"
 #include "renderer/core/command_queue.h"
 #include "renderer/core/swapchain.h"
+#include "scene/camera.h"
 #include "scene/scene.h"
+#include "window/input.h"
 #include "window/window.h"
 #include <dxgidebug.h>
 #include <filesystem>
@@ -113,26 +115,15 @@ void ash::rhi_init()
 
     init_device();
 
-    com_ptr<IDXGIOutput6> adapterOutput6;
-    ash::rhi_g_output.as(adapterOutput6);
-    assert(adapterOutput6.get());
-
-    DXGI_MODE_DESC1 targetMode = {};
-    targetMode.Format = DXGI_FORMAT_R10G10B10A2_UNORM;
-
-    DXGI_MODE_DESC1 closeMatch = {};
-
-    adapterOutput6->FindClosestMatchingMode1(&targetMode, &closeMatch, nullptr);
-
     rhi_cmd_init();
-    rhi_sw_init(closeMatch.Format);
+    rhi_sw_init();
     rhi_sc_init();
     rhi_sh_init();
     rhi_pl_init();
 
     rhi_g_viewport = {};
-    rhi_g_viewport.Width = closeMatch.Width;
-    rhi_g_viewport.Height = closeMatch.Height;
+    rhi_g_viewport.Width = rhi_sw_g_viewport.Width;
+    rhi_g_viewport.Height = rhi_sw_g_viewport.Height;
     rhi_g_viewport.MinDepth = 0.0f;
     rhi_g_viewport.MaxDepth = 1.0f;
     rhi_g_viewport.TopLeftX = 0.0f;
@@ -171,17 +162,29 @@ void ash::rhi_init()
     HANDLE hThread = static_cast<HANDLE>(rhi_g_renderer_thread.native_handle());
     SetThreadDescription(hThread, L"Renderer Thread");
     SetThreadPriority(hThread, THREAD_PRIORITY_HIGHEST);
+
+    g_camera.position = DirectX::XMFLOAT3(0, 0, -1.0f);
+    g_camera.rotation = DirectX::XMFLOAT3(0, 0, 0.0f);
 }
 
 void ash::rhi_render()
 {
+    auto last_time = std::chrono::high_resolution_clock::now();
+
     while (rhi_g_running)
     {
         SCOPED_CPU_EVENT(L"ash::rhi_render")
 
+        auto now = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<float> delta_time = now - last_time;
+        last_time = now;
+
         handle_window_events();
 
         ed_render();
+
+        cam_handle_input(g_camera, delta_time.count(), win_input_acquire_front_buffer(ash::g_win_input));
+        win_input_release_front_buffer(ash::g_win_input);
 
         scene_render();
 

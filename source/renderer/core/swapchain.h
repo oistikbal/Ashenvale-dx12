@@ -21,6 +21,6 @@ inline DXGI_FORMAT rhi_sw_g_format;
 
 namespace ash
 {
-void rhi_sw_init(DXGI_FORMAT format);
+void rhi_sw_init();
 void rhi_sw_resize();
 } // namespace ash

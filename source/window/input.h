@@ -61,6 +61,7 @@ inline void win_input_swap_buffers(win_input &input)
 {
     input.published_index.store(input.writer_index, std::memory_order_release);
     input.writer_index = win_input_find_next_writer_index(input);
+    input.input_states[input.writer_index] = input.input_states[input.published_index.load(std::memory_order_acquire)];
 }
 
 inline const win_input::input_state &win_input_acquire_front_buffer(win_input &input)
@@ -72,6 +73,12 @@ inline const win_input::input_state &win_input_acquire_front_buffer(win_input &i
 
 inline void win_input_release_front_buffer(win_input &input)
 {
+    const uint8_t reading = input.reader_index.load(std::memory_order_acquire);
+    if (reading != win_input::invalid_index)
+    {
+        input.input_states[reading].mouse_delta_pos[0] = 0.0f;
+        input.input_states[reading].mouse_delta_pos[1] = 0.0f;
+    }
     input.reader_index.store(win_input::invalid_index, std::memory_order_release);
 }
 } // namespace ash

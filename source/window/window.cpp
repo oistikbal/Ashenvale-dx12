@@ -4,6 +4,7 @@
 #include "renderer/renderer.h"
 #include "window/input.h"
 #include <imgui/imgui_impl_win32.h>
+#include <windowsx.h>
 
 static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -50,10 +51,9 @@ inline void input_winproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam, ash
         input_state.mouse_button[2] = false;
         break;
 
-    // This is probably doesn't work as intended.
     case WM_MOUSEMOVE:
-        int new_x = LOWORD(lparam);
-        int new_y = HIWORD(lparam);
+        int new_x = GET_X_LPARAM(lparam);
+        int new_y = GET_Y_LPARAM(lparam);
 
         input_state.mouse_delta_pos[0] = new_x - input_state.mouse_pos[0];
         input_state.mouse_delta_pos[1] = new_y - input_state.mouse_pos[1];

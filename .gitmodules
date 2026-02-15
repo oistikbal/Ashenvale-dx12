@@ -1,3 +1,6 @@
 [submodule "D3D12MA"]
 	path = thirdparty/D3D12MA
 	url = git@github.com:GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator.git
+[submodule "thirdparty/flecs"]
+	path = thirdparty/flecs
+	url = git@github.com:SanderMertens/flecs.git

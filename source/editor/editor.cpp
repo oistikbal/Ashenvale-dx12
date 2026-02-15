@@ -1,5 +1,7 @@
 #include "editor.h"
+#include "hierarchy.h"
 #include "IconsMaterialDesign.h"
+#include "inspector.h"
 #include "common.h"
 #include "configs/config.h"
 #include "renderer/core/command_queue.h"
@@ -151,6 +153,8 @@ void ash::ed_init()
     style.DockingSeparatorSize = 1.0f;
 
     ed_vp_init();
+    ed_hierarchy_init();
+    ed_inspector_init();
 
     if (!std::filesystem::exists("imgui.ini"))
     {
@@ -177,6 +181,14 @@ void ash::ed_render()
         {
             if (ImGui::MenuItem("Viewport"))
                 ed_vp_g_is_open = true;
+            if (ImGui::MenuItem("Hierarchy"))
+                ed_hierarchy_g_is_open = true;
+            if (ImGui::MenuItem("Inspector"))
+                ed_inspector_g_is_open = true;
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("GameObject"))
+        {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Layout"))
@@ -194,6 +206,8 @@ void ash::ed_render()
     ImGui::DockSpaceOverViewport(ImGui::GetMainViewport()->ID);
 
     ed_vp_render();
+    ed_hierarchy_render();
+    ed_inspector_render();
 
     ImGui::Render();
 }

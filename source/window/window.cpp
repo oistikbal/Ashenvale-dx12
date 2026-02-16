@@ -129,6 +129,8 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
 
     case WM_DESTROY:
         ash::rhi_stop();
+        ash::ed_shutdown();
+        ash::rhi_shutdown();
         PostQuitMessage(0);
         return 0;
     case WM_SIZE:

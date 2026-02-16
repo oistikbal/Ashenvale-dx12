@@ -212,6 +212,18 @@ void ash::ed_render()
     ImGui::Render();
 }
 
+void ash::ed_shutdown()
+{
+    SCOPED_CPU_EVENT(L"ash::ed_shutdown")
+
+    if (ImGui::GetCurrentContext())
+    {
+        ImGui_ImplDX12_Shutdown();
+        ImGui_ImplWin32_Shutdown();
+        ImGui::DestroyContext();
+    }
+}
+
 void ash::ed_render_backend()
 {
     SCOPED_CPU_EVENT(L"ash::ed_render_backend")

@@ -73,6 +73,13 @@ void init_device()
 
     ash::rhi_g_adapter->EnumOutputs(0, ash::rhi_g_output.put());
     assert(ash::rhi_g_output.get());
+
+    D3D12MA::ALLOCATOR_DESC allocator_desc = {};
+    allocator_desc.pDevice = ash::rhi_g_device.get();
+    allocator_desc.pAdapter = ash::rhi_g_adapter.get();
+    D3D12MA::CreateAllocator(&allocator_desc, ash::rhi_g_allocator.put());
+
+    assert(ash::rhi_g_allocator.get());
 }
 
 void handle_window_events()
@@ -204,15 +211,72 @@ void ash::rhi_render()
         rhi_cmd_g_command_allocator->Reset();
         rhi_cmd_g_command_list->Reset(rhi_cmd_g_command_allocator.get(), nullptr);
     }
-
-    ExitThread(0);
 }
 
 void ash::rhi_stop()
 {
     SCOPED_CPU_EVENT(L"ash::rhi_stop")
     rhi_g_running = false;
-    rhi_g_renderer_thread.join();
+    if (rhi_g_renderer_thread.joinable())
+    {
+        rhi_g_renderer_thread.join();
+    }
+}
+
+void ash::rhi_shutdown()
+{
+    SCOPED_CPU_EVENT(L"ash::rhi_shutdown")
+
+    rhi_g_viewport_texture = nullptr;
+    rhi_sw_g_dsv_buffer = nullptr;
+
+    for (UINT i = 0; i < 2; ++i)
+    {
+        rhi_sw_g_render_targets[i] = nullptr;
+    }
+
+    rhi_pl_g_triangle.pso = nullptr;
+    rhi_pl_g_triangle.root_signature = nullptr;
+
+    rhi_sh_g_triangle_vs.blob = nullptr;
+    rhi_sh_g_triangle_vs.root_blob = nullptr;
+    rhi_sh_g_triangle_vs.input_layout.clear();
+    rhi_sh_g_triangle_vs.bindings.clear();
+
+    rhi_sh_g_triangle_ps.blob = nullptr;
+    rhi_sh_g_triangle_ps.root_blob = nullptr;
+    rhi_sh_g_triangle_ps.input_layout.clear();
+    rhi_sh_g_triangle_ps.bindings.clear();
+
+    rhi_cmd_g_command_list = nullptr;
+    rhi_cmd_g_command_allocator = nullptr;
+    rhi_cmd_g_copy = nullptr;
+    rhi_cmd_g_compute = nullptr;
+    rhi_cmd_g_direct = nullptr;
+
+    rhi_g_cbv_srv_uav_heap = nullptr;
+    rhi_g_sampler_heap = nullptr;
+    rhi_g_viewport_rtv_heap = nullptr;
+    rhi_g_rtv_heap = nullptr;
+
+    rhi_sw_g_swapchain_rtv_heap = nullptr;
+    rhi_sw_g_swapchain_dsv_heap = nullptr;
+    rhi_sw_g_swapchain = nullptr;
+    rhi_sw_g_fence = nullptr;
+
+    if (rhi_sw_g_fence_event)
+    {
+        CloseHandle(rhi_sw_g_fence_event);
+        rhi_sw_g_fence_event = nullptr;
+    }
+
+    rhi_sc_g_compiler = nullptr;
+    rhi_sc_g_utils = nullptr;
+
+    rhi_g_allocator = nullptr;
+    rhi_g_output = nullptr;
+    rhi_g_adapter = nullptr;
+    rhi_g_device = nullptr;
 }
 
 void ash::rhi_resize(D3D12_VIEWPORT viewport)
@@ -224,8 +288,8 @@ void ash::rhi_resize(D3D12_VIEWPORT viewport)
     D3D12_RESOURCE_DESC tex_desc = {};
     tex_desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
     tex_desc.Alignment = 0;
-    tex_desc.Width = viewport.Width;
-    tex_desc.Height = viewport.Height;
+    tex_desc.Width = static_cast<UINT64>(viewport.Width);
+    tex_desc.Height = static_cast<UINT>(viewport.Height);
     tex_desc.DepthOrArraySize = 1;
     tex_desc.MipLevels = 1;
     tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -240,13 +304,11 @@ void ash::rhi_resize(D3D12_VIEWPORT viewport)
     optimized_clear_value.Color[2] = 0.0f;
     optimized_clear_value.Color[3] = 1.0f;
 
-    D3D12_HEAP_PROPERTIES heap_properties = {};
-    heap_properties.Type = D3D12_HEAP_TYPE_DEFAULT;
+    D3D12MA::ALLOCATION_DESC alloc_desc = {};
+    alloc_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
 
-    rhi_g_device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &tex_desc,
-                                          D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &optimized_clear_value,
-                                          IID_PPV_ARGS(rhi_g_viewport_texture.put()));
-
+    rhi_g_allocator->CreateResource(&alloc_desc, &tex_desc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+                                    &optimized_clear_value, rhi_g_viewport_texture.put(), IID_NULL, nullptr);
     assert(rhi_g_viewport_texture.get());
 
     SET_OBJECT_NAME(rhi_g_viewport_texture.get(), L"Viewport Texture");
@@ -256,10 +318,9 @@ void ash::rhi_resize(D3D12_VIEWPORT viewport)
     rtv_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
     rtv_desc.Texture2D.MipSlice = 0;
 
-    UINT rtvDescriptorSize = rhi_g_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
     D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle = rhi_g_viewport_rtv_heap->GetCPUDescriptorHandleForHeapStart();
 
-    rhi_g_device->CreateRenderTargetView(rhi_g_viewport_texture.get(), &rtv_desc, rtv_handle);
+    rhi_g_device->CreateRenderTargetView(rhi_g_viewport_texture->GetResource(), &rtv_desc, rtv_handle);
 
     D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
     srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -271,5 +332,5 @@ void ash::rhi_resize(D3D12_VIEWPORT viewport)
     D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle = rhi_g_cbv_srv_uav_heap->GetCPUDescriptorHandleForHeapStart();
     cpu_handle.ptr += handle_size;
 
-    rhi_g_device->CreateShaderResourceView(rhi_g_viewport_texture.get(), &srv_desc, cpu_handle);
+    rhi_g_device->CreateShaderResourceView(rhi_g_viewport_texture->GetResource(), &srv_desc, cpu_handle);
 }

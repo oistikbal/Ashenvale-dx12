@@ -32,14 +32,15 @@ void ash::scene_render()
 
             D3D12_RESOURCE_BARRIER barrier = {};
             barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-            barrier.Transition.pResource = rhi_g_viewport_texture.get();
+            barrier.Transition.pResource = rhi_g_viewport_texture->GetResource();
             barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
             barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
             barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
             command_list->ResourceBarrier(1, &barrier);
 
-            D3D12_CPU_DESCRIPTOR_HANDLE viewport_rtv_handle = rhi_g_viewport_rtv_heap->GetCPUDescriptorHandleForHeapStart();
+            D3D12_CPU_DESCRIPTOR_HANDLE viewport_rtv_handle =
+                rhi_g_viewport_rtv_heap->GetCPUDescriptorHandleForHeapStart();
             D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle = rhi_sw_g_swapchain_dsv_heap->GetCPUDescriptorHandleForHeapStart();
 
             command_list->OMSetRenderTargets(1, &viewport_rtv_handle, FALSE, &dsv_handle);
@@ -49,14 +50,15 @@ void ash::scene_render()
 
             command_list->SetPipelineState(rhi_pl_g_triangle.pso.get());
             command_list->RSSetViewports(1, &rhi_g_viewport);
-            D3D12_RECT scissorRect = {0, 0, rhi_g_viewport.Width, rhi_g_viewport.Height};
+            D3D12_RECT scissorRect = {0, 0, static_cast<UINT>(rhi_g_viewport.Width),
+                                      static_cast<UINT>(rhi_g_viewport.Height)};
             command_list->RSSetScissorRects(1, &scissorRect);
             command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
             command_list->SetGraphicsRoot32BitConstants(0, 16, &view_proj, 0);
             command_list->DrawInstanced(3, 1, 0, 0);
 
             barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-            barrier.Transition.pResource = rhi_g_viewport_texture.get();
+            barrier.Transition.pResource = rhi_g_viewport_texture->GetResource();
             barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
             barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
             barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;

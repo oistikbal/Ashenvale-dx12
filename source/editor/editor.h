@@ -10,6 +10,7 @@ namespace ash
 namespace ash
 {
 void ed_init();
+void ed_shutdown();
 void ed_render();
 void ed_render_backend();
 } // namespace ash

@@ -120,8 +120,8 @@ void ash::rhi_sw_resize()
     D3D12_RESOURCE_DESC depth_desc = {};
     depth_desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
     depth_desc.Alignment = 0;
-    depth_desc.Width = renderWidth;
-    depth_desc.Height = renderHeight;
+    depth_desc.Width = static_cast<UINT64>(renderWidth);
+    depth_desc.Height = static_cast<UINT>(renderHeight);
     depth_desc.DepthOrArraySize = 1;
     depth_desc.MipLevels = 1;
     depth_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -130,12 +130,13 @@ void ash::rhi_sw_resize()
     depth_desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
     depth_desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 
-    D3D12_HEAP_PROPERTIES heap_props = {};
-    heap_props.Type = D3D12_HEAP_TYPE_DEFAULT;
+    D3D12MA::ALLOCATION_DESC alloc_desc = {};
+    alloc_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
 
-    rhi_g_device->CreateCommittedResource(&heap_props, D3D12_HEAP_FLAG_NONE, &depth_desc,
-                                          D3D12_RESOURCE_STATE_DEPTH_WRITE, &depth_optimized_clear_value,
-                                          IID_PPV_ARGS(rhi_sw_g_dsv_buffer.put()));
+    rhi_g_allocator->CreateResource(&alloc_desc, &depth_desc, D3D12_RESOURCE_STATE_DEPTH_WRITE,
+                                                 &depth_optimized_clear_value, rhi_sw_g_dsv_buffer.put(), IID_NULL,
+                                                 nullptr);
+    assert(rhi_sw_g_dsv_buffer.get());
 
     SET_OBJECT_NAME(rhi_sw_g_dsv_buffer.get(), L"Dsv Buffer");
 
@@ -144,6 +145,6 @@ void ash::rhi_sw_resize()
     dsv_view_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
     dsv_view_desc.Flags = D3D12_DSV_FLAG_NONE;
 
-    rhi_g_device->CreateDepthStencilView(rhi_sw_g_dsv_buffer.get(), &dsv_view_desc,
+    rhi_g_device->CreateDepthStencilView(rhi_sw_g_dsv_buffer->GetResource(), &dsv_view_desc,
                                          rhi_sw_g_swapchain_dsv_heap->GetCPUDescriptorHandleForHeapStart());
 }

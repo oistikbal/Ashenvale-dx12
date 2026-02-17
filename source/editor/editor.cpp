@@ -1,12 +1,13 @@
 #include "editor.h"
-#include "hierarchy.h"
-#include "IconsMaterialDesign.h"
-#include "inspector.h"
+#include "IconsMaterialSymbols.h"
 #include "common.h"
 #include "configs/config.h"
+#include "hierarchy.h"
+#include "inspector.h"
 #include "renderer/core/command_queue.h"
 #include "renderer/core/swapchain.h"
 #include "renderer/renderer.h"
+#include "scene/scene.h"
 #include "viewport.h"
 #include "window/window.h"
 #include <filesystem>
@@ -60,12 +61,12 @@ void ash::ed_init()
     std::string full_path = (std::filesystem::path(cfg_RESOURCES_PATH) / "Roboto-Regular.ttf").string();
     io.Fonts->AddFontFromFileTTF((full_path.c_str()), 14.0f, &config);
 
-    static const ImWchar icon_ranges[] = {ICON_MIN_MD, ICON_MAX_16_MD, 0};
+    static const ImWchar icon_ranges[] = {ICON_MIN_MS, ICON_MAX_MS, 0};
     config.MergeMode = true;
     config.GlyphOffset.y = 6;
 
-    full_path = (std::filesystem::path(cfg_RESOURCES_PATH) / "MaterialIcons-Regular.ttf").string();
-    io.Fonts->AddFontFromFileTTF((full_path.c_str()), 20.0f, &config, icon_ranges);
+    full_path = (std::filesystem::path(cfg_RESOURCES_PATH) / "MaterialSymbolsOutlined[FILL,GRAD,opsz,wght].ttf").string();
+    io.Fonts->AddFontFromFileTTF((full_path.c_str()), 24, &config, icon_ranges);
 
     ImGuiStyle &style = ImGui::GetStyle();
     ImVec4 *colors = style.Colors;
@@ -150,6 +151,12 @@ void ash::ed_init()
     style.TabBarBorderSize = 0.0f;
     style.TabBarOverlineSize = 0.0f;
 
+    style.CellPadding = ImVec2(0.0f, 4.0f);
+    style.TreeLinesSize = 1.0f;
+    style.TreeLinesRounding = 5.0f;
+    style.CellPadding = ImVec2(4.0f, 4.0f);
+    style.TreeLinesFlags = ImGuiTreeNodeFlags_DrawLinesFull;
+
     style.DockingSeparatorSize = 1.0f;
 
     ed_vp_init();
@@ -189,6 +196,10 @@ void ash::ed_render()
         }
         if (ImGui::BeginMenu("GameObject"))
         {
+            if (ImGui::MenuItem(ICON_MS_ADD " Create Empty"))
+            {
+                scene_create_empty();
+            }
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Layout"))

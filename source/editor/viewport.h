@@ -3,6 +3,7 @@
 namespace ash
 {
 inline bool ed_vp_g_is_open = true;
+inline bool ed_vp_g_is_focused = false;
 }
 
 namespace ash

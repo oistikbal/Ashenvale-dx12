@@ -6,9 +6,27 @@
 #include "renderer/renderer.h"
 #include "scene/camera.h"
 #include <common.h>
+#include <string>
 
 using namespace winrt;
 using namespace DirectX;
+
+flecs::entity ash::scene_create_empty(flecs::entity parent)
+{
+    static uint32_t game_object_counter = 1;
+    const std::string name = "GameObject_" + std::to_string(game_object_counter++);
+
+    flecs::entity game_object_entity =
+        scene_g_world.entity(name.c_str()).add<ash::game_object>().set<ash::transform>({});
+
+    if (parent.is_valid())
+    {
+        game_object_entity.child_of(parent);
+    }
+
+    scene_g_selected = game_object_entity;
+    return game_object_entity;
+}
 
 void ash::scene_render()
 {

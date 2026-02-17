@@ -1,5 +1,5 @@
 #include "viewport.h"
-#include "IconsMaterialDesign.h"
+#include "IconsMaterialSymbols.h"
 #include "editor.h"
 #include "renderer/renderer.h"
 #include <imgui/imgui.h>
@@ -14,15 +14,18 @@ void ash::ed_vp_init()
 void ash::ed_vp_render()
 {
     SCOPED_CPU_EVENT(L"ash::ed_vp_render");
+    ed_vp_g_is_focused = false;
     if (!ed_vp_g_is_open)
         return;
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
-    bool is_expanded = ImGui::Begin(ICON_MD_LANDSCAPE " Viewport ###Viewport", &ed_vp_g_is_open);
+    bool is_expanded = ImGui::Begin(ICON_MS_LANDSCAPE " Viewport ###Viewport", &ed_vp_g_is_open);
     if (is_expanded)
     {
+        ed_vp_g_is_focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+
         ImVec2 size = ImGui::GetContentRegionAvail();
         int newWidth = size.x < 16 ? 16 : static_cast<int>(size.x);
         int newHeight = size.y < 16 ? 16 : static_cast<int>(size.y);

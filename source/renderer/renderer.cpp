@@ -2,6 +2,7 @@
 #include "common.h"
 #include "configs/config.h"
 #include "editor/editor.h"
+#include "editor/viewport.h"
 #include "pipeline/pipeline.h"
 #include "pipeline/shader.h"
 #include "pipeline/shader_compiler.h"
@@ -190,7 +191,11 @@ void ash::rhi_render()
 
         ed_render();
 
-        cam_handle_input(g_camera, delta_time.count(), win_input_acquire_front_buffer(ash::g_win_input));
+        const auto &input_state = win_input_acquire_front_buffer(ash::g_win_input);
+        if (ed_vp_g_is_focused)
+        {
+            cam_handle_input(g_camera, delta_time.count(), input_state);
+        }
         win_input_release_front_buffer(ash::g_win_input);
 
         scene_render();

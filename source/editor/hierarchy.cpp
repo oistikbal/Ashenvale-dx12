@@ -107,7 +107,6 @@ void ash::ed_hierarchy_render()
 
     pending_create_request create_request = {};
 
-    ImGui::Separator();
 
     if (ImGui::BeginPopupContextWindow("HierarchyContext", ImGuiPopupFlags_NoOpenOverItems))
     {

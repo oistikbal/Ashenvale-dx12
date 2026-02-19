@@ -1,4 +1,5 @@
 #include "swapchain.h"
+#include "editor/console.h"
 #include "renderer/core/command_queue.h"
 #include "window/window.h"
 #include <renderer/renderer.h>
@@ -8,6 +9,7 @@ using namespace winrt;
 void ash::rhi_sw_init()
 {
     SCOPED_CPU_EVENT(L"ash::rhi_sw_init")
+    ed_console_log(ed_console_log_level::info, "[Swapchain] Initialization begin.");
     assert(rhi_cmd_g_direct.get());
 
     com_ptr<IDXGIOutput6> adapterOutput6;
@@ -28,6 +30,7 @@ void ash::rhi_sw_init()
 
     int renderWidth = clientRect.right - clientRect.left;
     int renderHeight = clientRect.bottom - clientRect.top;
+    ed_console_log(ed_console_log_level::info, "[Swapchain] Creating swapchain.");
 
     DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
     swapChainDesc.BufferCount = 2;
@@ -69,6 +72,7 @@ void ash::rhi_sw_init()
     rhi_sw_g_fence_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
     rhi_g_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(rhi_sw_g_fence.put()));
     SET_OBJECT_NAME(rhi_sw_g_fence.get(), L"Swapchain Fence")
+    ed_console_log(ed_console_log_level::info, "[Swapchain] Initialization complete.");
 }
 
 void ash::rhi_sw_resize()
@@ -83,14 +87,23 @@ void ash::rhi_sw_resize()
     int renderHeight = clientRect.bottom - clientRect.top;
 
     if (renderWidth == 0 || renderHeight == 0)
+    {
+        ed_console_log(ed_console_log_level::warning, "[Swapchain] Resize skipped (minimized).");
         return;
+    }
 
     for (UINT i = 0; i < 2; ++i)
     {
         rhi_sw_g_render_targets[i] = nullptr;
     }
 
-    rhi_sw_g_swapchain->ResizeBuffers(2, renderWidth, renderHeight, rhi_sw_g_format, 0);
+    const HRESULT resize_hr = rhi_sw_g_swapchain->ResizeBuffers(2, renderWidth, renderHeight, rhi_sw_g_format, 0);
+    if (FAILED(resize_hr))
+    {
+        ed_console_log(ed_console_log_level::error, "[Swapchain] ResizeBuffers failed.");
+        return;
+    }
+    ed_console_log(ed_console_log_level::info, "[Swapchain] Resized successfully.");
 
     rhi_sw_g_viewport = {};
     rhi_sw_g_viewport.Width = static_cast<float>(renderWidth);

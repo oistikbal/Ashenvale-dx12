@@ -1,6 +1,7 @@
 #include "inspector.h"
 #include "IconsMaterialSymbols.h"
 #include "common.h"
+#include "console.h"
 #include "scene/component.h"
 #include "scene/scene.h"
 #include <cstring>
@@ -70,9 +71,14 @@ void draw_name_field(flecs::entity entity)
 
     if (submitted || ImGui::IsItemDeactivatedAfterEdit())
     {
+        std::string old_name = entity.name().c_str();
         ash::scene_set_entity_name_safe(entity, name_buffer);
 
         std::string resolved_name = entity.name().c_str();
+        if (resolved_name != old_name)
+        {
+            ash::ed_console_log(ash::ed_console_log_level::info, "[Inspector] Entity renamed.");
+        }
         memset(name_buffer, 0, sizeof(name_buffer));
         const size_t copy_count =
             (resolved_name.size() < (sizeof(name_buffer) - 1)) ? resolved_name.size() : (sizeof(name_buffer) - 1);

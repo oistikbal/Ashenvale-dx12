@@ -1,4 +1,5 @@
 #include "window/window.h"
+#include "editor/console.h"
 #include "editor/editor.h"
 #include "renderer/core/swapchain.h"
 #include "renderer/renderer.h"
@@ -68,6 +69,8 @@ inline void input_winproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam, ash
 void ash::win_init(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
 {
     SCOPED_CPU_EVENT(L"ash::win_init");
+    ed_console_log(ed_console_log_level::info, "[Window] Initialization begin.");
+
     WNDCLASS wc = {};
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = GetModuleHandle(nullptr);
@@ -83,11 +86,13 @@ void ash::win_init(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
                                 screenWidth, screenHeight, nullptr, nullptr, wc.hInstance, nullptr);
 
     assert(win_g_hwnd);
+    ed_console_log(ed_console_log_level::info, "[Window] Main window created.");
 
     ShowWindow(win_g_hwnd, SW_SHOWMAXIMIZED);
     UpdateWindow(win_g_hwnd);
     rhi_init();
     ed_init();
+    ed_console_log(ed_console_log_level::info, "[Window] Initialization complete.");
 }
 
 void ash::win_run()
@@ -128,12 +133,15 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
         break;
 
     case WM_DESTROY:
+        ash::ed_console_log(ash::ed_console_log_level::info, "[App] Shutdown sequence begin.");
         ash::rhi_stop();
         ash::ed_shutdown();
         ash::rhi_shutdown();
+        ash::ed_console_log(ash::ed_console_log_level::info, "[App] Shutdown sequence end.");
         PostQuitMessage(0);
         return 0;
     case WM_SIZE:
+        ash::ed_console_log(ash::ed_console_log_level::info, "[Window] Resize requested.");
         ash::win_evt_push(ash::win_g_queue, {ash::win_evt_windows_event::resize});
         return 0;
     }

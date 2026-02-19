@@ -1,6 +1,7 @@
 #include "renderer.h"
 #include "common.h"
 #include "configs/config.h"
+#include "editor/console.h"
 #include "editor/editor.h"
 #include "editor/viewport.h"
 #include "pipeline/pipeline.h"
@@ -12,15 +13,118 @@
 #include "scene/scene.h"
 #include "window/input.h"
 #include "window/window.h"
+#include <d3d12sdklayers.h>
 #include <dxgidebug.h>
 #include <filesystem>
+#include <format>
+#include <string>
 
 using namespace winrt;
 
 namespace
 {
+#if _DEBUG
+com_ptr<ID3D12InfoQueue> g_d3d12_info_queue;
+com_ptr<IDXGIInfoQueue> g_dxgi_info_queue;
+UINT64 g_d3d12_last_msg_index = 0;
+UINT64 g_dxgi_last_msg_index = 0;
+#endif
+
+#if _DEBUG
+ash::ed_console_log_level to_log_level(D3D12_MESSAGE_SEVERITY severity)
+{
+    switch (severity)
+    {
+    case D3D12_MESSAGE_SEVERITY_CORRUPTION:
+    case D3D12_MESSAGE_SEVERITY_ERROR:
+        return ash::ed_console_log_level::error;
+    case D3D12_MESSAGE_SEVERITY_WARNING:
+        return ash::ed_console_log_level::warning;
+    case D3D12_MESSAGE_SEVERITY_INFO:
+    case D3D12_MESSAGE_SEVERITY_MESSAGE:
+    default:
+        return ash::ed_console_log_level::info;
+    }
+}
+
+ash::ed_console_log_level to_log_level(DXGI_INFO_QUEUE_MESSAGE_SEVERITY severity)
+{
+    switch (severity)
+    {
+    case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR:
+    case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION:
+        return ash::ed_console_log_level::error;
+    case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_WARNING:
+        return ash::ed_console_log_level::warning;
+    case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_INFO:
+    case DXGI_INFO_QUEUE_MESSAGE_SEVERITY_MESSAGE:
+    default:
+        return ash::ed_console_log_level::info;
+    }
+}
+
+void drain_debug_messages()
+{
+    constexpr UINT64 max_messages_per_frame = 64;
+
+    if (g_d3d12_info_queue)
+    {
+        UINT64 message_count = g_d3d12_info_queue->GetNumStoredMessagesAllowedByRetrievalFilter();
+        UINT64 end = (message_count > (g_d3d12_last_msg_index + max_messages_per_frame))
+                         ? (g_d3d12_last_msg_index + max_messages_per_frame)
+                         : message_count;
+
+        for (UINT64 i = g_d3d12_last_msg_index; i < end; ++i)
+        {
+            SIZE_T len = 0;
+            if (FAILED(g_d3d12_info_queue->GetMessage(i, nullptr, &len)) || len == 0)
+            {
+                continue;
+            }
+
+            std::string buffer(len, '\0');
+            auto *msg = reinterpret_cast<D3D12_MESSAGE *>(buffer.data());
+            if (SUCCEEDED(g_d3d12_info_queue->GetMessage(i, msg, &len)) && msg->pDescription)
+            {
+                ash::ed_console_log(to_log_level(msg->Severity), std::format("[D3D12] {}", msg->pDescription));
+            }
+        }
+
+        g_d3d12_last_msg_index = end;
+    }
+
+    if (g_dxgi_info_queue)
+    {
+        UINT64 message_count = g_dxgi_info_queue->GetNumStoredMessages(DXGI_DEBUG_ALL);
+        UINT64 end =
+            (message_count > (g_dxgi_last_msg_index + max_messages_per_frame)) ? (g_dxgi_last_msg_index + max_messages_per_frame)
+                                                                                : message_count;
+
+        for (UINT64 i = g_dxgi_last_msg_index; i < end; ++i)
+        {
+            SIZE_T len = 0;
+            if (FAILED(g_dxgi_info_queue->GetMessage(DXGI_DEBUG_ALL, i, nullptr, &len)) || len == 0)
+            {
+                continue;
+            }
+
+            std::string buffer(len, '\0');
+            auto *msg = reinterpret_cast<DXGI_INFO_QUEUE_MESSAGE *>(buffer.data());
+            if (SUCCEEDED(g_dxgi_info_queue->GetMessage(DXGI_DEBUG_ALL, i, msg, &len)) && msg->pDescription)
+            {
+                ash::ed_console_log(to_log_level(msg->Severity), std::format("[DXGI] {}", msg->pDescription));
+            }
+        }
+
+        g_dxgi_last_msg_index = end;
+    }
+}
+#endif
+
 void init_device()
 {
+    ash::ed_console_log(ash::ed_console_log_level::info, "[RHI] Device initialization begin.");
+
 #if _DEBUG
     com_ptr<ID3D12Debug> debugController;
     if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
@@ -32,20 +136,70 @@ void init_device()
     if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiInfoQueue))))
     {
         dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, true);
+        g_dxgi_info_queue = dxgiInfoQueue;
+        g_dxgi_last_msg_index = g_dxgi_info_queue->GetNumStoredMessages(DXGI_DEBUG_ALL);
     }
 #endif
 
     com_ptr<IDXGIFactory7> factory;
-    CreateDXGIFactory2(0, IID_PPV_ARGS(&factory));
+    HRESULT hr = CreateDXGIFactory2(0, IID_PPV_ARGS(&factory));
+    if (FAILED(hr))
+    {
+        ash::ed_console_log(ash::ed_console_log_level::error, "[RHI] CreateDXGIFactory2 failed.");
+        return;
+    }
 
-    factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-                                        IID_PPV_ARGS(ash::rhi_g_adapter.put()));
+    hr = factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(ash::rhi_g_adapter.put()));
+    if (FAILED(hr))
+    {
+        ash::ed_console_log(ash::ed_console_log_level::error, "[RHI] Adapter selection failed.");
+        return;
+    }
 
-    D3D12CreateDevice(ash::rhi_g_adapter.get(), D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(ash::rhi_g_device.put()));
+    hr = D3D12CreateDevice(ash::rhi_g_adapter.get(), D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(ash::rhi_g_device.put()));
+    if (FAILED(hr))
+    {
+        ash::ed_console_log(ash::ed_console_log_level::error, "[RHI] D3D12CreateDevice failed.");
+    }
     assert(ash::rhi_g_device.get());
+
+#if _DEBUG
+    ash::rhi_g_device.as(g_d3d12_info_queue);
+    if (g_d3d12_info_queue)
+    {
+        g_d3d12_last_msg_index = g_d3d12_info_queue->GetNumStoredMessagesAllowedByRetrievalFilter();
+    }
+#endif
 
     D3D12_FEATURE_DATA_D3D12_OPTIONS options = {};
     ash::rhi_g_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(options));
+
+    const char *feature_level = "Unknown";
+    D3D12_FEATURE_DATA_FEATURE_LEVELS fl = {};
+    D3D_FEATURE_LEVEL levels[] = {
+        D3D_FEATURE_LEVEL_12_2,
+        D3D_FEATURE_LEVEL_12_1,
+        D3D_FEATURE_LEVEL_12_0,
+    };
+    fl.NumFeatureLevels = _countof(levels);
+    fl.pFeatureLevelsRequested = levels;
+    if (SUCCEEDED(ash::rhi_g_device->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &fl, sizeof(fl))))
+    {
+        switch (fl.MaxSupportedFeatureLevel)
+        {
+        case D3D_FEATURE_LEVEL_12_2:
+            feature_level = "12_2";
+            break;
+        case D3D_FEATURE_LEVEL_12_1:
+            feature_level = "12_1";
+            break;
+        case D3D_FEATURE_LEVEL_12_0:
+            feature_level = "12_0";
+            break;
+        default:
+            break;
+        }
+    }
 
     switch (options.ResourceBindingTier)
     {
@@ -72,6 +226,27 @@ void init_device()
         }
     }
 
+    const char *shader_model_str = "unknown";
+    switch (shaderModel.HighestShaderModel)
+    {
+    case D3D_SHADER_MODEL_6_6:
+        shader_model_str = "6_6";
+        break;
+    case D3D_SHADER_MODEL_6_7:
+        shader_model_str = "6_7";
+        break;
+    case D3D_SHADER_MODEL_6_8:
+        shader_model_str = "6_8";
+        break;
+    default:
+        break;
+    }
+
+    ash::ed_console_log(
+        ash::ed_console_log_level::info,
+        std::format("[RHI] DX12 feature level={} shader model={} agility sdk={}.", feature_level, shader_model_str,
+                    D3D12_SDK_VERSION));
+
     ash::rhi_g_adapter->EnumOutputs(0, ash::rhi_g_output.put());
     assert(ash::rhi_g_output.get());
 
@@ -81,6 +256,7 @@ void init_device()
     D3D12MA::CreateAllocator(&allocator_desc, ash::rhi_g_allocator.put());
 
     assert(ash::rhi_g_allocator.get());
+    ash::ed_console_log(ash::ed_console_log_level::info, "[RHI] Device initialization complete.");
 }
 
 void handle_window_events()
@@ -120,6 +296,7 @@ void handle_window_events()
 void ash::rhi_init()
 {
     SCOPED_CPU_EVENT(L"ash::rhi_init");
+    ed_console_log(ed_console_log_level::info, "[RHI] Initialization begin.");
 
     init_device();
 
@@ -163,6 +340,7 @@ void ash::rhi_init()
 
     assert(rhi_g_sampler_heap.get());
     SET_OBJECT_NAME(rhi_g_sampler_heap.get(), L"Sampler Desc Heap");
+    ed_console_log(ed_console_log_level::info, "[RHI] Descriptor heaps created.");
 
     rhi_resize(rhi_g_viewport);
 
@@ -170,9 +348,11 @@ void ash::rhi_init()
     HANDLE hThread = static_cast<HANDLE>(rhi_g_renderer_thread.native_handle());
     SetThreadDescription(hThread, L"Renderer Thread");
     SetThreadPriority(hThread, THREAD_PRIORITY_HIGHEST);
+    ed_console_log(ed_console_log_level::info, "[RHI] Renderer thread started.");
 
     g_camera.position = DirectX::XMFLOAT3(0, 0, -1.0f);
     g_camera.rotation = DirectX::XMFLOAT3(0, 0, 0.0f);
+    ed_console_log(ed_console_log_level::info, "[RHI] Initialization complete.");
 }
 
 void ash::rhi_render()
@@ -202,7 +382,14 @@ void ash::rhi_render()
 
         ID3D12CommandList *cmdLists[] = {rhi_cmd_g_command_list.get()};
         rhi_cmd_g_direct->ExecuteCommandLists(1, cmdLists);
-        rhi_sw_g_swapchain->Present(1, 0);
+        HRESULT present_hr = rhi_sw_g_swapchain->Present(1, 0);
+        if (FAILED(present_hr))
+        {
+            ed_console_log(ed_console_log_level::error, "[Frame] Swapchain present failed.");
+        }
+#if _DEBUG
+        drain_debug_messages();
+#endif
 
         rhi_sw_g_fence_value++;
         rhi_cmd_g_direct->Signal(rhi_sw_g_fence.get(), rhi_sw_g_fence_value);
@@ -221,16 +408,19 @@ void ash::rhi_render()
 void ash::rhi_stop()
 {
     SCOPED_CPU_EVENT(L"ash::rhi_stop")
+    ed_console_log(ed_console_log_level::info, "[RHI] Stop requested.");
     rhi_g_running = false;
     if (rhi_g_renderer_thread.joinable())
     {
         rhi_g_renderer_thread.join();
     }
+    ed_console_log(ed_console_log_level::info, "[RHI] Renderer thread stopped.");
 }
 
 void ash::rhi_shutdown()
 {
     SCOPED_CPU_EVENT(L"ash::rhi_shutdown")
+    ed_console_log(ed_console_log_level::info, "[RHI] Shutdown begin.");
 
     rhi_g_viewport_texture = nullptr;
     rhi_sw_g_dsv_buffer = nullptr;
@@ -282,11 +472,13 @@ void ash::rhi_shutdown()
     rhi_g_output = nullptr;
     rhi_g_adapter = nullptr;
     rhi_g_device = nullptr;
+    ed_console_log(ed_console_log_level::info, "[RHI] Shutdown complete.");
 }
 
 void ash::rhi_resize(D3D12_VIEWPORT viewport)
 {
     SCOPED_CPU_EVENT(L"ash::rhi_resize")
+    ed_console_log(ed_console_log_level::info, "[RHI] Viewport resource resize.");
 
     rhi_g_viewport = viewport;
 

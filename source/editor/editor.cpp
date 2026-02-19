@@ -2,6 +2,7 @@
 #include "IconsMaterialSymbols.h"
 #include "common.h"
 #include "configs/config.h"
+#include "console.h"
 #include "hierarchy.h"
 #include "inspector.h"
 #include "renderer/core/command_queue.h"
@@ -28,6 +29,7 @@ void load_default_ini()
 
     std::string full_path = (std::filesystem::path(ash::cfg_RESOURCES_PATH) / "imgui.ini").string();
     ImGui::LoadIniSettingsFromDisk(full_path.c_str());
+    ash::ed_console_log(ash::ed_console_log_level::info, "[Editor] Default layout loaded.");
 }
 
 std::optional<std::filesystem::path> choose_gltf_scene_file()
@@ -187,6 +189,7 @@ void ash::ed_init()
     ed_vp_init();
     ed_hierarchy_init();
     ed_inspector_init();
+    ed_console_init();
 
     if (!std::filesystem::exists("imgui.ini"))
     {
@@ -210,6 +213,7 @@ void ash::ed_render()
             {
                 if (auto selected_path = choose_gltf_scene_file(); selected_path.has_value())
                 {
+                    ed_console_log(ed_console_log_level::info, "[Editor] glTF file selected from dialog.");
                     scene_load_gltf(selected_path.value());
                 }
             }
@@ -225,12 +229,15 @@ void ash::ed_render()
                 ed_hierarchy_g_is_open = true;
             if (ImGui::MenuItem("Inspector"))
                 ed_inspector_g_is_open = true;
+            if (ImGui::MenuItem("Console"))
+                ed_console_g_is_open = true;
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("GameObject"))
         {
             if (ImGui::MenuItem(ICON_MS_ADD " Create Empty"))
             {
+                ed_console_log(ed_console_log_level::info, "[Editor] Create Empty requested.");
                 scene_create_empty();
             }
             ImGui::EndMenu();
@@ -252,6 +259,7 @@ void ash::ed_render()
     ed_vp_render();
     ed_hierarchy_render();
     ed_inspector_render();
+    ed_console_render();
 
     ImGui::Render();
 }

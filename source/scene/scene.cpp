@@ -1,4 +1,5 @@
 #include "scene.h"
+#include "editor/console.h"
 #include "editor/editor.h"
 #include "renderer/core/command_queue.h"
 #include "renderer/core/swapchain.h"
@@ -77,14 +78,18 @@ flecs::entity ash::scene_create_empty(flecs::entity parent)
 
     scene_set_entity_name_safe(game_object_entity, name);
     scene_g_selected = game_object_entity;
+    ed_console_log(ed_console_log_level::info, "[Scene] Empty entity created.");
     return game_object_entity;
 }
 
 bool ash::scene_load_gltf(const std::filesystem::path &path)
 {
+    ed_console_log(ed_console_log_level::info, "[Scene] glTF import begin.");
+
     if (!std::filesystem::exists(path))
     {
         std::cerr << "glTF import failed. File does not exist: " << path << '\n';
+        ed_console_log(ed_console_log_level::error, "glTF import failed: file does not exist.");
         return false;
     }
 
@@ -97,6 +102,7 @@ bool ash::scene_load_gltf(const std::filesystem::path &path)
     if (!bool(gltf_file))
     {
         std::cerr << "glTF import failed to open file: " << fastgltf::getErrorMessage(gltf_file.error()) << '\n';
+        ed_console_log(ed_console_log_level::error, "glTF import failed: unable to open file.");
         return false;
     }
 
@@ -104,6 +110,7 @@ bool ash::scene_load_gltf(const std::filesystem::path &path)
     if (loaded_asset.error() != fastgltf::Error::None)
     {
         std::cerr << "glTF import failed to parse file: " << fastgltf::getErrorMessage(loaded_asset.error()) << '\n';
+        ed_console_log(ed_console_log_level::error, "glTF import failed: parse error.");
         return false;
     }
 
@@ -111,6 +118,7 @@ bool ash::scene_load_gltf(const std::filesystem::path &path)
     if (asset.scenes.empty())
     {
         std::cerr << "glTF import failed: no scenes in file.\n";
+        ed_console_log(ed_console_log_level::error, "glTF import failed: no scenes in file.");
         return false;
     }
 
@@ -183,6 +191,7 @@ bool ash::scene_load_gltf(const std::filesystem::path &path)
         import_node(root_node_index, import_root);
     }
 
+    ed_console_log(ed_console_log_level::info, "[Scene] glTF import complete.");
     return true;
 }
 

@@ -1,6 +1,7 @@
 #include "hierarchy.h"
 #include "IconsMaterialSymbols.h"
 #include "common.h"
+#include "console.h"
 #include "scene/component.h"
 #include "scene/scene.h"
 #include <cstdint>
@@ -144,6 +145,7 @@ void ash::ed_hierarchy_render()
 
     if (create_request.requested)
     {
+        ed_console_log(ed_console_log_level::info, "[Hierarchy] Create Empty requested.");
         scene_create_empty(create_request.parent);
     }
 

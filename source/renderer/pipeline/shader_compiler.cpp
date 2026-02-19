@@ -1,5 +1,6 @@
 #include "shader_compiler.h"
 #include "configs/config.h"
+#include "editor/console.h"
 #include <d3d12shader.h>
 #include <dxcapi.h>
 #include <filesystem>
@@ -74,6 +75,7 @@ void ash::rhi_sc_init()
 HRESULT ash::rhi_sc_compile(const wchar_t *file, const wchar_t *entryPoint, const wchar_t *target, IDxcResult **result,
                             IDxcBlobUtf8 **error_blob)
 {
+    ed_console_log(ed_console_log_level::info, "[Shader] Compile begin.");
     std::wstring full_path = std::wstring(cfg_SHADER_PATH) + file;
     std::vector<uint8_t> source_data = load_file(full_path.c_str());
 
@@ -95,10 +97,19 @@ HRESULT ash::rhi_sc_compile(const wchar_t *file, const wchar_t *entryPoint, cons
     if (error_blob && (*error_blob)->GetStringLength() > 0)
     {
         OutputDebugStringA((*error_blob)->GetStringPointer());
+        ed_console_log(ed_console_log_level::warning, "[Shader] Compiler emitted warnings/errors.");
     }
 
     HRESULT hrStatus;
     (*result)->GetStatus(&hrStatus);
+    if (FAILED(hrStatus))
+    {
+        ed_console_log(ed_console_log_level::error, "[Shader] Compile failed.");
+    }
+    else
+    {
+        ed_console_log(ed_console_log_level::info, "[Shader] Compile success.");
+    }
     assert(SUCCEEDED(hrStatus));
 
     return hrStatus;

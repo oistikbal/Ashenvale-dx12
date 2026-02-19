@@ -4,3 +4,6 @@
 [submodule "thirdparty/flecs"]
 	path = thirdparty/flecs
 	url = git@github.com:SanderMertens/flecs.git
+[submodule "thirdparty/fastgltf"]
+	path = thirdparty/fastgltf
+	url = git@github.com:spnda/fastgltf.git

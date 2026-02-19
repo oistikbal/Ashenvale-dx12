@@ -1,4 +1,4 @@
-file(GLOB_RECURSE ASHENVALE_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+﻿file(GLOB_RECURSE ASHENVALE_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 file(GLOB_RECURSE ASHENVALE_HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 file(GLOB_RECURSE ASHENVALE_CONFIGURES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/*.h.in")
 file(GLOB_RECURSE ASHENVALE_GENERATEDS CONFIGURE_DEPENDS "${CMAKE_BINARY_DIR}/generated/*.h")
@@ -37,6 +37,7 @@ set_target_properties(Ashenvale PROPERTIES CXX_STANDARD_REQUIRED True)
 
 target_link_libraries(Ashenvale flecs::flecs_static)
 target_link_libraries(Ashenvale D3D12MemoryAllocator)
+target_link_libraries(Ashenvale fastgltf)
 
 if(WIN32)
     target_link_libraries(Ashenvale d3d12 dxguid dxgi windowsapp) 

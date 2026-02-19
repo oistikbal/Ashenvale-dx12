@@ -179,7 +179,7 @@ void ash::rhi_render()
 {
     auto last_time = std::chrono::high_resolution_clock::now();
 
-    while (rhi_g_running)
+    while (rhi_g_running.load(std::memory_order_relaxed))
     {
         SCOPED_CPU_EVENT(L"ash::rhi_render")
 

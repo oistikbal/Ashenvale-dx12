@@ -70,7 +70,13 @@ void draw_name_field(flecs::entity entity)
 
     if (submitted || ImGui::IsItemDeactivatedAfterEdit())
     {
-        entity.set_name(name_buffer);
+        ash::scene_set_entity_name_safe(entity, name_buffer);
+
+        std::string resolved_name = entity.name().c_str();
+        memset(name_buffer, 0, sizeof(name_buffer));
+        const size_t copy_count =
+            (resolved_name.size() < (sizeof(name_buffer) - 1)) ? resolved_name.size() : (sizeof(name_buffer) - 1);
+        memcpy(name_buffer, resolved_name.c_str(), copy_count);
     }
 }
 

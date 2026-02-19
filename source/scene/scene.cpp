@@ -6,26 +6,184 @@
 #include "renderer/renderer.h"
 #include "scene/camera.h"
 #include <common.h>
+#include <fastgltf/core.hpp>
+#include <fastgltf/math.hpp>
+#include <fastgltf/types.hpp>
+#include <filesystem>
+#include <functional>
+#include <iostream>
 #include <string>
+#include <vector>
 
 using namespace winrt;
 using namespace DirectX;
+
+namespace
+{
+flecs::entity lookup_name_in_scope(const std::string &name, flecs::entity parent)
+{
+    if (parent.is_valid())
+    {
+        return parent.lookup(name.c_str(), false);
+    }
+
+    return ash::scene_g_world.lookup(name.c_str(), "::", "::", false);
+}
+} // namespace
+
+std::string ash::scene_make_unique_name(std::string_view desired_name, flecs::entity parent, flecs::entity ignore)
+{
+    const std::string base_name = desired_name.empty() ? "GameObject" : std::string(desired_name);
+    std::string candidate_name = base_name;
+
+    uint32_t suffix = 2;
+    while (true)
+    {
+        flecs::entity existing = lookup_name_in_scope(candidate_name, parent);
+        const bool is_unique = !existing.is_valid() || (ignore.is_valid() && existing.id() == ignore.id());
+
+        if (is_unique)
+        {
+            return candidate_name;
+        }
+
+        candidate_name = base_name + " (" + std::to_string(suffix++) + ")";
+    }
+}
+
+void ash::scene_set_entity_name_safe(flecs::entity entity, std::string_view desired_name)
+{
+    if (!entity.is_valid())
+    {
+        return;
+    }
+
+    const flecs::entity parent = entity.parent();
+    const std::string unique_name = scene_make_unique_name(desired_name, parent, entity);
+    entity.set_name(unique_name.c_str());
+}
 
 flecs::entity ash::scene_create_empty(flecs::entity parent)
 {
     static uint32_t game_object_counter = 1;
     const std::string name = "GameObject_" + std::to_string(game_object_counter++);
 
-    flecs::entity game_object_entity =
-        scene_g_world.entity(name.c_str()).add<ash::game_object>().set<ash::transform>({});
+    flecs::entity game_object_entity = scene_g_world.entity().add<ash::game_object>().set<ash::transform>({});
 
     if (parent.is_valid())
     {
         game_object_entity.child_of(parent);
     }
 
+    scene_set_entity_name_safe(game_object_entity, name);
     scene_g_selected = game_object_entity;
     return game_object_entity;
+}
+
+bool ash::scene_load_gltf(const std::filesystem::path &path)
+{
+    if (!std::filesystem::exists(path))
+    {
+        std::cerr << "glTF import failed. File does not exist: " << path << '\n';
+        return false;
+    }
+
+    fastgltf::Parser parser(fastgltf::Extensions::KHR_mesh_quantization);
+    constexpr auto options = fastgltf::Options::DontRequireValidAssetMember | fastgltf::Options::DecomposeNodeMatrices;
+    constexpr auto categories =
+        fastgltf::Category::Asset | fastgltf::Category::Scenes | fastgltf::Category::Nodes | fastgltf::Category::Meshes;
+
+    auto gltf_file = fastgltf::MappedGltfFile::FromPath(path);
+    if (!bool(gltf_file))
+    {
+        std::cerr << "glTF import failed to open file: " << fastgltf::getErrorMessage(gltf_file.error()) << '\n';
+        return false;
+    }
+
+    auto loaded_asset = parser.loadGltf(gltf_file.get(), path.parent_path(), options, categories);
+    if (loaded_asset.error() != fastgltf::Error::None)
+    {
+        std::cerr << "glTF import failed to parse file: " << fastgltf::getErrorMessage(loaded_asset.error()) << '\n';
+        return false;
+    }
+
+    fastgltf::Asset asset = std::move(loaded_asset.get());
+    if (asset.scenes.empty())
+    {
+        std::cerr << "glTF import failed: no scenes in file.\n";
+        return false;
+    }
+
+    std::size_t scene_index = asset.defaultScene.value_or(0);
+    if (scene_index >= asset.scenes.size())
+    {
+        scene_index = 0;
+    }
+
+    const auto &gltf_scene = asset.scenes[scene_index];
+    std::string scene_name = gltf_scene.name.empty() ? path.stem().string() : std::string(gltf_scene.name.c_str());
+    if (scene_name.empty())
+    {
+        scene_name = "Imported Scene";
+    }
+
+    flecs::entity import_root = scene_g_world.entity().add<ash::game_object>().set<ash::transform>({});
+    scene_set_entity_name_safe(import_root, "glTF: " + scene_name);
+    scene_g_selected = import_root;
+
+    std::function<void(std::size_t, flecs::entity)> import_node = [&](std::size_t node_index, flecs::entity parent) {
+        if (node_index >= asset.nodes.size())
+        {
+            return;
+        }
+
+        const auto &node = asset.nodes[node_index];
+        std::string node_name = node.name.empty() ? ("Node_" + std::to_string(node_index)) : std::string(node.name.c_str());
+        if (node.meshIndex.has_value())
+        {
+            node_name += " [Mesh " + std::to_string(node.meshIndex.value()) + "]";
+        }
+
+        ash::transform entity_transform = {};
+        if (const auto *trs = std::get_if<fastgltf::TRS>(&node.transform))
+        {
+            entity_transform.position = {trs->translation[0], trs->translation[1], trs->translation[2]};
+            entity_transform.rotation = {trs->rotation[0], trs->rotation[1], trs->rotation[2], trs->rotation[3]};
+            entity_transform.scale = {trs->scale[0], trs->scale[1], trs->scale[2]};
+        }
+        else
+        {
+            fastgltf::math::fvec3 scale = {1.0f, 1.0f, 1.0f};
+            fastgltf::math::fquat rotation(0.0f, 0.0f, 0.0f, 1.0f);
+            fastgltf::math::fvec3 translation = {0.0f, 0.0f, 0.0f};
+
+            auto matrix = std::get<fastgltf::math::fmat4x4>(node.transform);
+            fastgltf::math::decomposeTransformMatrix(matrix, scale, rotation, translation);
+
+            entity_transform.position = {translation[0], translation[1], translation[2]};
+            entity_transform.rotation = {rotation[0], rotation[1], rotation[2], rotation[3]};
+            entity_transform.scale = {scale[0], scale[1], scale[2]};
+        }
+
+        flecs::entity entity = scene_g_world.entity().add<ash::game_object>().set<ash::transform>(entity_transform);
+        if (parent.is_valid())
+        {
+            entity.child_of(parent);
+        }
+        scene_set_entity_name_safe(entity, node_name);
+
+        for (std::size_t child_node_index : node.children)
+        {
+            import_node(child_node_index, entity);
+        }
+    };
+
+    for (std::size_t root_node_index : gltf_scene.nodeIndices)
+    {
+        import_node(root_node_index, import_root);
+    }
+
+    return true;
 }
 
 void ash::scene_render()

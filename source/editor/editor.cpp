@@ -10,10 +10,13 @@
 #include "scene/scene.h"
 #include "viewport.h"
 #include "window/window.h"
+#include <array>
+#include <commdlg.h>
 #include <filesystem>
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_dx12.h>
 #include <imgui/imgui_impl_win32.h>
+#include <optional>
 
 using namespace winrt;
 
@@ -25,6 +28,27 @@ void load_default_ini()
 
     std::string full_path = (std::filesystem::path(ash::cfg_RESOURCES_PATH) / "imgui.ini").string();
     ImGui::LoadIniSettingsFromDisk(full_path.c_str());
+}
+
+std::optional<std::filesystem::path> choose_gltf_scene_file()
+{
+    std::array<char, MAX_PATH> file_path = {};
+
+    OPENFILENAMEA open_file_dialog = {};
+    open_file_dialog.lStructSize = sizeof(open_file_dialog);
+    open_file_dialog.hwndOwner = ash::win_g_hwnd;
+    open_file_dialog.lpstrFile = file_path.data();
+    open_file_dialog.nMaxFile = static_cast<DWORD>(file_path.size());
+    open_file_dialog.lpstrFilter = "glTF Scene Files (*.gltf;*.glb)\0*.gltf;*.glb\0All Files (*.*)\0*.*\0";
+    open_file_dialog.nFilterIndex = 1;
+    open_file_dialog.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
+    if (GetOpenFileNameA(&open_file_dialog) == FALSE)
+    {
+        return std::nullopt;
+    }
+
+    return std::filesystem::path(file_path.data());
 }
 } // namespace
 
@@ -65,7 +89,8 @@ void ash::ed_init()
     config.MergeMode = true;
     config.GlyphOffset.y = 6;
 
-    full_path = (std::filesystem::path(cfg_RESOURCES_PATH) / "MaterialSymbolsOutlined[FILL,GRAD,opsz,wght].ttf").string();
+    full_path =
+        (std::filesystem::path(cfg_RESOURCES_PATH) / "MaterialSymbolsOutlined[FILL,GRAD,opsz,wght].ttf").string();
     io.Fonts->AddFontFromFileTTF((full_path.c_str()), 24, &config, icon_ranges);
 
     ImGuiStyle &style = ImGui::GetStyle();
@@ -181,6 +206,14 @@ void ash::ed_render()
     {
         if (ImGui::BeginMenu("Scene"))
         {
+            if (ImGui::MenuItem("Load glTF Scene..."))
+            {
+                if (auto selected_path = choose_gltf_scene_file(); selected_path.has_value())
+                {
+                    scene_load_gltf(selected_path.value());
+                }
+            }
+
             ImGui::EndMenu();
         }
 

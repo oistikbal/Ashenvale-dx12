@@ -7,9 +7,7 @@ namespace ash
 {
 inline winrt::com_ptr<IDXGISwapChain4> rhi_sw_g_swapchain = nullptr;
 inline winrt::com_ptr<ID3D12DescriptorHeap> rhi_sw_g_swapchain_rtv_heap = nullptr;
-inline winrt::com_ptr<ID3D12DescriptorHeap> rhi_sw_g_swapchain_dsv_heap = nullptr;
 inline winrt::com_ptr<ID3D12Resource> rhi_sw_g_render_targets[2];
-inline winrt::com_ptr<D3D12MA::Allocation> rhi_sw_g_dsv_buffer;
 inline winrt::com_ptr<ID3D12Fence> rhi_sw_g_fence;
 
 inline uint8_t rhi_sw_g_current_backbuffer = 0;

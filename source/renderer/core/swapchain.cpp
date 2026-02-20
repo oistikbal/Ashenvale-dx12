@@ -61,13 +61,6 @@ void ash::rhi_sw_init()
     rhi_g_device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(rhi_sw_g_swapchain_rtv_heap.put()));
     SET_OBJECT_NAME(rhi_sw_g_swapchain_rtv_heap, L"Rtv Heap")
 
-    D3D12_DESCRIPTOR_HEAP_DESC dsv_heap_desc = {};
-    dsv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-    dsv_heap_desc.NumDescriptors = 1;
-    dsv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-    rhi_g_device->CreateDescriptorHeap(&dsv_heap_desc, IID_PPV_ARGS(rhi_sw_g_swapchain_dsv_heap.put()));
-    SET_OBJECT_NAME(rhi_sw_g_swapchain_dsv_heap, L"Dsv Heap")
-
     rhi_sw_resize();
     rhi_sw_g_fence_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
     rhi_g_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(rhi_sw_g_fence.put()));
@@ -125,39 +118,4 @@ void ash::rhi_sw_resize()
         rtvHandle.ptr += rtvDescriptorSize;
     }
 
-    D3D12_CLEAR_VALUE depth_optimized_clear_value = {};
-    depth_optimized_clear_value.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    depth_optimized_clear_value.DepthStencil.Depth = 1.0f;
-    depth_optimized_clear_value.DepthStencil.Stencil = 0;
-
-    D3D12_RESOURCE_DESC depth_desc = {};
-    depth_desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-    depth_desc.Alignment = 0;
-    depth_desc.Width = static_cast<UINT64>(renderWidth);
-    depth_desc.Height = static_cast<UINT>(renderHeight);
-    depth_desc.DepthOrArraySize = 1;
-    depth_desc.MipLevels = 1;
-    depth_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    depth_desc.SampleDesc.Count = 1;
-    depth_desc.SampleDesc.Quality = 0;
-    depth_desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-    depth_desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-
-    D3D12MA::ALLOCATION_DESC alloc_desc = {};
-    alloc_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
-
-    rhi_g_allocator->CreateResource(&alloc_desc, &depth_desc, D3D12_RESOURCE_STATE_DEPTH_WRITE,
-                                                 &depth_optimized_clear_value, rhi_sw_g_dsv_buffer.put(), IID_NULL,
-                                                 nullptr);
-    assert(rhi_sw_g_dsv_buffer.get());
-
-    SET_OBJECT_NAME(rhi_sw_g_dsv_buffer.get(), L"Dsv Buffer");
-
-    D3D12_DEPTH_STENCIL_VIEW_DESC dsv_view_desc = {};
-    dsv_view_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    dsv_view_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-    dsv_view_desc.Flags = D3D12_DSV_FLAG_NONE;
-
-    rhi_g_device->CreateDepthStencilView(rhi_sw_g_dsv_buffer->GetResource(), &dsv_view_desc,
-                                         rhi_sw_g_swapchain_dsv_heap->GetCPUDescriptorHandleForHeapStart());
 }

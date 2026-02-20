@@ -323,6 +323,15 @@ void ash::rhi_init()
     assert(rhi_g_viewport_rtv_heap.get());
     SET_OBJECT_NAME(rhi_g_viewport_rtv_heap.get(), L"Viewport Rtv Desc Heap");
 
+    D3D12_DESCRIPTOR_HEAP_DESC viewport_dsv_heap_desc = {};
+    viewport_dsv_heap_desc.NumDescriptors = 1;
+    viewport_dsv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+    viewport_dsv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+    rhi_g_device->CreateDescriptorHeap(&viewport_dsv_heap_desc, IID_PPV_ARGS(rhi_g_viewport_dsv_heap.put()));
+
+    assert(rhi_g_viewport_dsv_heap.get());
+    SET_OBJECT_NAME(rhi_g_viewport_dsv_heap.get(), L"Viewport Dsv Desc Heap");
+
     D3D12_DESCRIPTOR_HEAP_DESC cbv_srv_uav_heap_desc = {};
     cbv_srv_uav_heap_desc.NumDescriptors = 1000000;
     cbv_srv_uav_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -423,7 +432,7 @@ void ash::rhi_shutdown()
     ed_console_log(ed_console_log_level::info, "[RHI] Shutdown begin.");
 
     rhi_g_viewport_texture = nullptr;
-    rhi_sw_g_dsv_buffer = nullptr;
+    rhi_g_viewport_dsv_buffer = nullptr;
 
     for (UINT i = 0; i < 2; ++i)
     {
@@ -452,10 +461,10 @@ void ash::rhi_shutdown()
     rhi_g_cbv_srv_uav_heap = nullptr;
     rhi_g_sampler_heap = nullptr;
     rhi_g_viewport_rtv_heap = nullptr;
+    rhi_g_viewport_dsv_heap = nullptr;
     rhi_g_rtv_heap = nullptr;
 
     rhi_sw_g_swapchain_rtv_heap = nullptr;
-    rhi_sw_g_swapchain_dsv_heap = nullptr;
     rhi_sw_g_swapchain = nullptr;
     rhi_sw_g_fence = nullptr;
 
@@ -518,6 +527,37 @@ void ash::rhi_resize(D3D12_VIEWPORT viewport)
     D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle = rhi_g_viewport_rtv_heap->GetCPUDescriptorHandleForHeapStart();
 
     rhi_g_device->CreateRenderTargetView(rhi_g_viewport_texture->GetResource(), &rtv_desc, rtv_handle);
+
+    D3D12_CLEAR_VALUE depth_optimized_clear_value = {};
+    depth_optimized_clear_value.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    depth_optimized_clear_value.DepthStencil.Depth = 1.0f;
+    depth_optimized_clear_value.DepthStencil.Stencil = 0;
+
+    D3D12_RESOURCE_DESC depth_desc = {};
+    depth_desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    depth_desc.Alignment = 0;
+    depth_desc.Width = static_cast<UINT64>(viewport.Width);
+    depth_desc.Height = static_cast<UINT>(viewport.Height);
+    depth_desc.DepthOrArraySize = 1;
+    depth_desc.MipLevels = 1;
+    depth_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    depth_desc.SampleDesc.Count = 1;
+    depth_desc.SampleDesc.Quality = 0;
+    depth_desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+    depth_desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+    rhi_g_allocator->CreateResource(&alloc_desc, &depth_desc, D3D12_RESOURCE_STATE_DEPTH_WRITE,
+                                    &depth_optimized_clear_value, rhi_g_viewport_dsv_buffer.put(), IID_NULL, nullptr);
+    assert(rhi_g_viewport_dsv_buffer.get());
+    SET_OBJECT_NAME(rhi_g_viewport_dsv_buffer.get(), L"Viewport Dsv Buffer");
+
+    D3D12_DEPTH_STENCIL_VIEW_DESC dsv_view_desc = {};
+    dsv_view_desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    dsv_view_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+    dsv_view_desc.Flags = D3D12_DSV_FLAG_NONE;
+
+    D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle = rhi_g_viewport_dsv_heap->GetCPUDescriptorHandleForHeapStart();
+    rhi_g_device->CreateDepthStencilView(rhi_g_viewport_dsv_buffer->GetResource(), &dsv_view_desc, dsv_handle);
 
     D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
     srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;

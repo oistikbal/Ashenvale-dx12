@@ -226,7 +226,7 @@ void ash::scene_render()
 
             D3D12_CPU_DESCRIPTOR_HANDLE viewport_rtv_handle =
                 rhi_g_viewport_rtv_heap->GetCPUDescriptorHandleForHeapStart();
-            D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle = rhi_sw_g_swapchain_dsv_heap->GetCPUDescriptorHandleForHeapStart();
+            D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle = rhi_g_viewport_dsv_heap->GetCPUDescriptorHandleForHeapStart();
 
             command_list->OMSetRenderTargets(1, &viewport_rtv_handle, FALSE, &dsv_handle);
 

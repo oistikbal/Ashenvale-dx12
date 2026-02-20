@@ -4,6 +4,7 @@
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
+    SetThreadDescription(GetCurrentThread(), L"Main Thread");
     ash::ed_console_log(ash::ed_console_log_level::info, "[App] Startup begin.");
 
     wchar_t buf[1024]{};
@@ -11,7 +12,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     std::filesystem::path exe = buf;
     SetCurrentDirectoryW(exe.parent_path().c_str());
 
-    SetThreadDescription(GetCurrentThread(), L"Main Thread");
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
 

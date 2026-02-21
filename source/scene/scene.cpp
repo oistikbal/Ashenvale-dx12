@@ -21,6 +21,8 @@ using namespace DirectX;
 
 namespace
 {
+inline com_ptr<D3D12MA::Allocation> g_scene_buffer;
+
 flecs::entity lookup_name_in_scope(const std::string &name, flecs::entity parent)
 {
     if (parent.is_valid())
@@ -146,7 +148,8 @@ bool ash::scene_load_gltf(const std::filesystem::path &path)
         }
 
         const auto &node = asset.nodes[node_index];
-        std::string node_name = node.name.empty() ? ("Node_" + std::to_string(node_index)) : std::string(node.name.c_str());
+        std::string node_name =
+            node.name.empty() ? ("Node_" + std::to_string(node_index)) : std::string(node.name.c_str());
         if (node.meshIndex.has_value())
         {
             node_name += " [Mesh " + std::to_string(node.meshIndex.value()) + "]";
@@ -195,6 +198,50 @@ bool ash::scene_load_gltf(const std::filesystem::path &path)
     return true;
 }
 
+void ash::scene_init()
+{
+    D3D12_RESOURCE_DESC buf_desc = {};
+    buf_desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    buf_desc.Alignment = 0;
+    buf_desc.Width = sizeof(XMFLOAT4X4) * 256;
+    buf_desc.Height = 1;
+    buf_desc.DepthOrArraySize = 1;
+    buf_desc.DepthOrArraySize = 1;
+    buf_desc.MipLevels = 1;
+    buf_desc.Format = DXGI_FORMAT_UNKNOWN;
+    buf_desc.SampleDesc.Count = 1;
+    buf_desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    buf_desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+    D3D12MA::ALLOCATION_DESC alloc_desc = {};
+    alloc_desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
+
+    rhi_g_allocator->CreateResource(&alloc_desc, &buf_desc, D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE, nullptr,
+                                    g_scene_buffer.put(), IID_NULL, nullptr);
+
+    assert(g_scene_buffer.get());
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    srvDesc.Buffer.FirstElement = 0;
+    srvDesc.Buffer.NumElements = 256;
+    srvDesc.Buffer.StructureByteStride = sizeof(XMFLOAT4X4);
+    srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+
+    D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle = rhi_g_cbv_srv_uav_heap->GetCPUDescriptorHandleForHeapStart();
+    UINT handle_size = rhi_g_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    cpu_handle.ptr += 5 * handle_size;
+
+    rhi_g_device->CreateShaderResourceView(g_scene_buffer->GetResource(), &srvDesc, cpu_handle);
+}
+
+void ash::scene_shutdown()
+{
+    g_scene_buffer = nullptr;
+}
+
 void ash::scene_render()
 {
     {
@@ -213,7 +260,7 @@ void ash::scene_render()
             ID3D12DescriptorHeap *heap[] = {rhi_g_cbv_srv_uav_heap.get(), rhi_g_sampler_heap.get()};
             command_list->SetDescriptorHeaps(2, heap);
 
-            command_list->SetGraphicsRootSignature(rhi_pl_g_triangle.root_signature.get());
+            command_list->SetGraphicsRootSignature(rhi_pl_g_triangle_instanced.root_signature.get());
 
             D3D12_RESOURCE_BARRIER barrier = {};
             barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -233,14 +280,38 @@ void ash::scene_render()
             command_list->ClearRenderTargetView(viewport_rtv_handle, clear_color, 0, nullptr);
             command_list->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
-            command_list->SetPipelineState(rhi_pl_g_triangle.pso.get());
+            command_list->SetPipelineState(rhi_pl_g_triangle_instanced.pso.get());
             command_list->RSSetViewports(1, &rhi_g_viewport);
             D3D12_RECT scissorRect = {0, 0, static_cast<UINT>(rhi_g_viewport.Width),
                                       static_cast<UINT>(rhi_g_viewport.Height)};
             command_list->RSSetScissorRects(1, &scissorRect);
             command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-            command_list->SetGraphicsRoot32BitConstants(0, 16, &view_proj, 0);
-            command_list->DrawInstanced(3, 1, 0, 0);
+
+            struct SceneData
+            {
+                XMFLOAT4X4 vp;
+                uint32_t buffer_id;
+            };
+
+            SceneData sd;
+            sd.vp = view_proj;
+            sd.buffer_id = 5;
+
+            command_list->SetGraphicsRoot32BitConstants(0, 17, &sd, 0);
+
+            XMFLOAT4X4 *mapped_data;
+            uint32_t id = 0;
+            g_scene_buffer->GetResource()->Map(0, nullptr, reinterpret_cast<void **>(&mapped_data));
+            scene_g_world.each([&](flecs::entity e, transform &t) {
+                DirectX::XMStoreFloat4x4(&mapped_data[id], get_world_transform_matrix(e));
+                id++;
+            });
+            g_scene_buffer->GetResource()->Unmap(0, nullptr);
+
+            if (id > 0)
+            {
+                command_list->DrawInstanced(3, id, 0, 0);
+            }
 
             barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
             barrier.Transition.pResource = rhi_g_viewport_texture->GetResource();

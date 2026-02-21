@@ -96,9 +96,9 @@ void drain_debug_messages()
     if (g_dxgi_info_queue)
     {
         UINT64 message_count = g_dxgi_info_queue->GetNumStoredMessages(DXGI_DEBUG_ALL);
-        UINT64 end =
-            (message_count > (g_dxgi_last_msg_index + max_messages_per_frame)) ? (g_dxgi_last_msg_index + max_messages_per_frame)
-                                                                                : message_count;
+        UINT64 end = (message_count > (g_dxgi_last_msg_index + max_messages_per_frame))
+                         ? (g_dxgi_last_msg_index + max_messages_per_frame)
+                         : message_count;
 
         for (UINT64 i = g_dxgi_last_msg_index; i < end; ++i)
         {
@@ -149,7 +149,8 @@ void init_device()
         return;
     }
 
-    hr = factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(ash::rhi_g_adapter.put()));
+    hr = factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
+                                             IID_PPV_ARGS(ash::rhi_g_adapter.put()));
     if (FAILED(hr))
     {
         ash::ed_console_log(ash::ed_console_log_level::error, "[RHI] Adapter selection failed.");
@@ -242,10 +243,9 @@ void init_device()
         break;
     }
 
-    ash::ed_console_log(
-        ash::ed_console_log_level::info,
-        std::format("[RHI] DX12 feature level={} shader model={} agility sdk={}.", feature_level, shader_model_str,
-                    D3D12_SDK_VERSION));
+    ash::ed_console_log(ash::ed_console_log_level::info,
+                        std::format("[RHI] DX12 feature level={} shader model={} agility sdk={}.", feature_level,
+                                    shader_model_str, D3D12_SDK_VERSION));
 
     ash::rhi_g_adapter->EnumOutputs(0, ash::rhi_g_output.put());
     assert(ash::rhi_g_output.get());

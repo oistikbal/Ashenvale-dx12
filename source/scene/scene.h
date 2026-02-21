@@ -18,4 +18,6 @@ std::string scene_make_unique_name(std::string_view desired_name, flecs::entity 
 void scene_set_entity_name_safe(flecs::entity entity, std::string_view desired_name);
 bool scene_load_gltf(const std::filesystem::path &path);
 void scene_render();
+void scene_init();
+void scene_shutdown();
 } // namespace ash

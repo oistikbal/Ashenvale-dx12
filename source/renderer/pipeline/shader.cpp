@@ -36,4 +36,7 @@ void ash::rhi_sh_init()
 {
     init_shader(rhi_sh_g_triangle_vs, L"triangle.hlsl", L"vs_main", L"vs_6_6");
     init_shader(rhi_sh_g_triangle_ps, L"triangle.hlsl", L"ps_main", L"ps_6_6");
+
+    init_shader(rhi_sh_g_triangle_instanced_vs, L"triangle_instanced.hlsl", L"vs_main", L"vs_6_6");
+    init_shader(rhi_sh_g_triangle_instanced_ps, L"triangle_instanced.hlsl", L"ps_main", L"ps_6_6");
 }

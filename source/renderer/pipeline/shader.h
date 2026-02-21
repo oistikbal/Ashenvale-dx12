@@ -23,6 +23,9 @@ struct rhi_sh_shader
 
 inline rhi_sh_shader rhi_sh_g_triangle_vs;
 inline rhi_sh_shader rhi_sh_g_triangle_ps;
+
+inline rhi_sh_shader rhi_sh_g_triangle_instanced_vs;
+inline rhi_sh_shader rhi_sh_g_triangle_instanced_ps;
 } // namespace ash
 
 namespace ash

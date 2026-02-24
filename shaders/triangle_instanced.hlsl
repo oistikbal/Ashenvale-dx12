@@ -41,8 +41,8 @@ VSOutput vs_main(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID)
     InstanceData data = instances[instanceId];
     
     VSOutput output;
-    float4 worldPos = mul(data.worldMatrix, float4(positions[vertexId], 0.0f, 1.0f));
-    output.position = mul(sb.vp, worldPos);
+    float4 worldPos = mul(float4(positions[vertexId], 0.0f, 1.0f), data.worldMatrix);
+    output.position = mul(worldPos, sb.vp);
     output.uv = uv[vertexId];
     return output;
 }

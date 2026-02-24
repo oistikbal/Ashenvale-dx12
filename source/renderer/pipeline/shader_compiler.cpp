@@ -51,8 +51,7 @@ HRESULT dxc_create_instance_from_exe_dir(REFCLSID clsid, REFIID iid, void **out)
             LoadLibraryW(dxil_path.c_str());
         }
 
-        dxc_create_instance =
-            reinterpret_cast<DxcCreateInstanceProc>(GetProcAddress(dxc_module, "DxcCreateInstance"));
+        dxc_create_instance = reinterpret_cast<DxcCreateInstanceProc>(GetProcAddress(dxc_module, "DxcCreateInstance"));
         if (!dxc_create_instance)
         {
             return HRESULT_FROM_WIN32(GetLastError());
@@ -82,16 +81,21 @@ HRESULT ash::rhi_sc_compile(const wchar_t *file, const wchar_t *entryPoint, cons
     com_ptr<IDxcBlobEncoding> source_blob;
     rhi_sc_g_utils->CreateBlobFromPinned(source_data.data(), (UINT32)source_data.size(), CP_UTF8, source_blob.put());
 
-    const wchar_t *args[] = {
-        file, L"-E", entryPoint, L"-T", target, L"-Zi", L"-Qembed_debug", L"-Od", L"-Qstrip_reflect",
-    };
+    const wchar_t *args[] = {L"-Zi", L"-Qembed_debug", L"-Od", L"-Qstrip_reflect", L"-Zpr"};
+
+    com_ptr<IDxcCompilerArgs> args_obj;
+
+    HRESULT hr = rhi_sc_g_utils->BuildArguments(file, entryPoint, target, args, 5, nullptr, 0, args_obj.put());
+
+    assert(SUCCEEDED(hr));
 
     DxcBuffer source_buffer = {};
     source_buffer.Ptr = source_blob->GetBufferPointer();
     source_buffer.Size = source_blob->GetBufferSize();
     source_buffer.Encoding = DXC_CP_UTF8;
 
-    rhi_sc_g_compiler->Compile(&source_buffer, args, _countof(args), nullptr, IID_PPV_ARGS(result));
+    rhi_sc_g_compiler->Compile(&source_buffer, args_obj->GetArguments(), args_obj->GetCount(), nullptr,
+                               IID_PPV_ARGS(result));
 
     (*result)->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(error_blob), nullptr);
     if (error_blob && (*error_blob)->GetStringLength() > 0)

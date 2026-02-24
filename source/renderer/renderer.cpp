@@ -293,6 +293,15 @@ void handle_window_events()
 }
 } // namespace
 
+void ash::rhi_start()
+{
+    rhi_g_renderer_thread = std::thread(rhi_render);
+    HANDLE hThread = static_cast<HANDLE>(rhi_g_renderer_thread.native_handle());
+    SetThreadDescription(hThread, L"Renderer Thread");
+    SetThreadPriority(hThread, THREAD_PRIORITY_HIGHEST);
+    ed_console_log(ed_console_log_level::info, "[RHI] Renderer thread started.");
+}
+
 void ash::rhi_init()
 {
     SCOPED_CPU_EVENT(L"ash::rhi_init");
@@ -352,12 +361,6 @@ void ash::rhi_init()
     ed_console_log(ed_console_log_level::info, "[RHI] Descriptor heaps created.");
 
     rhi_resize(rhi_g_viewport);
-
-    rhi_g_renderer_thread = std::thread(rhi_render);
-    HANDLE hThread = static_cast<HANDLE>(rhi_g_renderer_thread.native_handle());
-    SetThreadDescription(hThread, L"Renderer Thread");
-    SetThreadPriority(hThread, THREAD_PRIORITY_HIGHEST);
-    ed_console_log(ed_console_log_level::info, "[RHI] Renderer thread started.");
 
     g_camera.position = DirectX::XMFLOAT3(0, 0, -1.0f);
     g_camera.rotation = DirectX::XMFLOAT3(0, 0, 0.0f);

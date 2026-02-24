@@ -95,6 +95,8 @@ void ash::win_init(HINSTANCE hInstance, PWSTR pCmdLine, int nCmdShow)
     ed_init();
     scene_init();
 
+    rhi_start();
+
     ed_console_log(ed_console_log_level::info, "[Window] Initialization complete.");
 }
 

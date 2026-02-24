@@ -32,6 +32,7 @@ namespace ash
 {
 void rhi_init();
 void rhi_render();
+void rhi_start();
 void rhi_stop();
 void rhi_shutdown();
 void rhi_resize(D3D12_VIEWPORT viewport);

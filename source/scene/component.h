@@ -40,7 +40,7 @@ inline DirectX::XMMATRIX get_world_transform_matrix(flecs::entity entity)
         if (it->has<ash::transform>())
         {
             const ash::transform &node_transform = it->get<ash::transform>();
-            world = world * get_local_transform_matrix(node_transform);
+            world = get_local_transform_matrix(node_transform) * world;
         }
     }
 

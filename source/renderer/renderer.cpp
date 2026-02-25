@@ -480,6 +480,9 @@ void ash::rhi_shutdown()
     rhi_sc_g_compiler = nullptr;
     rhi_sc_g_utils = nullptr;
 
+    g_d3d12_info_queue = nullptr;
+    g_dxgi_info_queue = nullptr;
+
     rhi_g_allocator = nullptr;
     rhi_g_output = nullptr;
     rhi_g_adapter = nullptr;
